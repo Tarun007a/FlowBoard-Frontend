@@ -1,0 +1,31 @@
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  background: rgba(15, 23, 42, 0.38);
+  padding: 20px;
+}
+
+.dialog-card {
+  width: min(460px, 100%);
+  padding: 18px;
+}
+
+.dialog-header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.dialog-header h2 {
+  margin: 8px 0 4px;
+  font-size: 1.2rem;
+}
+
+.dialog-header p {
+  margin: 0;
+}

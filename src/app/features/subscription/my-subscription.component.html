@@ -1,0 +1,68 @@
+<div class="stack subscription-page">
+  <section class="panel my-subscription-hero">
+    <div>
+      <div class="badge">My Subscription</div>
+      <h1>Current subscription status</h1>
+      <p class="muted">Track your active plan, timeline, and renewal readiness in one place.</p>
+    </div>
+
+    <div class="actions">
+      <a class="button secondary" routerLink="/subscription/plans">View Plans</a>
+      <button class="button secondary" type="button" (click)="loadMySubscription()">Refresh</button>
+    </div>
+  </section>
+
+  <section class="panel state-card" *ngIf="loading">
+    <p class="muted">Loading subscription...</p>
+  </section>
+
+  <section class="panel summary-card" *ngIf="!loading && subscription">
+    <header class="summary-head">
+      <div>
+        <p class="plan-label">Current Plan</p>
+        <h2>{{ subscription.plan }}</h2>
+      </div>
+      <span class="status-pill" [class.active]="statusClass(subscription.status) === 'active'">
+        {{ subscription.status }}
+      </span>
+    </header>
+
+    <div class="summary-grid">
+      <article>
+        <span class="muted">Start Date</span>
+        <strong>{{ subscription.startDate }}</strong>
+      </article>
+
+      <article>
+        <span class="muted">Expiry Date</span>
+        <strong>{{ subscription.expiryDate }}</strong>
+      </article>
+
+      <article>
+        <span class="muted">Days Remaining</span>
+        <strong>{{ daysRemaining() !== null ? daysRemaining() : 'N/A' }}</strong>
+      </article>
+
+      <article>
+        <span class="muted">Renewal Info</span>
+        <strong>{{ renewalInfo() }}</strong>
+      </article>
+    </div>
+  </section>
+
+  <section class="panel empty-state" *ngIf="!loading && noActiveSubscription">
+    <h2>No active subscription</h2>
+    <p class="muted">Upgrade your workspace experience with a premium plan.</p>
+    <div class="actions">
+      <a class="button accent" routerLink="/subscription/plans">View Plans</a>
+    </div>
+  </section>
+
+  <section class="panel empty-state" *ngIf="!loading && !subscription && !noActiveSubscription && error">
+    <p class="error">{{ error }}</p>
+    <div class="actions">
+      <button class="button secondary" type="button" (click)="loadMySubscription()">Retry</button>
+      <a class="button accent" routerLink="/subscription/plans">View Plans</a>
+    </div>
+  </section>
+</div>

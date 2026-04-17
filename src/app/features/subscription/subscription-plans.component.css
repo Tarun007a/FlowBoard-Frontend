@@ -1,0 +1,123 @@
+.subscription-page {
+  gap: 14px;
+}
+
+.plans-hero {
+  padding: 18px;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  background: linear-gradient(128deg, #eff7ff, #dcecff);
+}
+
+.plans-hero h1 {
+  margin: 10px 0 6px;
+  color: #1f3857;
+}
+
+.plans-hero p {
+  margin: 0;
+}
+
+.plans-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.plan-card {
+  border: 1px solid #cfe1f6;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 12px 28px rgba(30, 74, 135, 0.14);
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+}
+
+.plan-card.recommended {
+  border-color: #8dbbee;
+  box-shadow: 0 16px 30px rgba(31, 102, 187, 0.2);
+  background: linear-gradient(180deg, #ffffff, #f4f9ff);
+}
+
+.plan-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.plan-name {
+  margin: 0;
+  color: #35608f;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.plan-head h2 {
+  margin: 6px 0;
+  color: #1f3654;
+}
+
+.recommended-pill {
+  border-radius: 999px;
+  border: 1px solid #a7cbf2;
+  background: #e8f2ff;
+  color: #255c96;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 0.28rem 0.52rem;
+}
+
+.plan-points {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.plan-points li {
+  color: #456283;
+  border: 1px solid #d9e8f8;
+  border-radius: 10px;
+  background: #f8fbff;
+  padding: 0.45rem 0.55rem;
+  font-size: 0.87rem;
+}
+
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  background: rgba(15, 23, 42, 0.3);
+  padding: 18px;
+}
+
+.dialog-card {
+  width: min(460px, 100%);
+  padding: 18px;
+  display: grid;
+  gap: 10px;
+}
+
+.dialog-card h2 {
+  margin: 0;
+  color: #1f3a5b;
+}
+
+.dialog-card p {
+  margin: 0;
+}
+
+@media (max-width: 760px) {
+  .plans-hero {
+    flex-direction: column;
+  }
+}

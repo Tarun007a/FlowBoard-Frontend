@@ -1,0 +1,36 @@
+<section class="panel members-shell stack">
+  <div class="members-head">
+    <div>
+      <div class="badge">Board Members</div>
+      <h2 class="section-title">Members on this board</h2>
+      <p class="muted">Keep board access focused and manage members separately from cards and lists.</p>
+    </div>
+    <div class="actions">
+      <button class="button secondary" type="button" (click)="loadMembers()">Refresh</button>
+      <button class="button accent" type="button" (click)="openAddMemberDialog()">Add Member</button>
+    </div>
+  </div>
+
+  <p class="error" *ngIf="error">{{ error }}</p>
+
+  <div class="empty-state" *ngIf="!loading && !error && !members.length">
+    <div class="badge">No members yet</div>
+    <p class="muted">Add the first member to start collaboration in this board.</p>
+  </div>
+
+  <div class="member-list" *ngIf="members.length">
+    <article class="member-card" *ngFor="let member of members">
+      <div class="avatar">{{ initial(member) }}</div>
+      <div>
+        <h3>{{ displayName(member) }}</h3>
+        <p>{{ member.email || 'Email unavailable' }}</p>
+      </div>
+    </article>
+  </div>
+</section>
+
+<app-add-board-member
+  *ngIf="showAddMemberDialog"
+  [boardId]="boardId"
+  (cancel)="closeAddMemberDialog()"
+  (saved)="onMemberAdded()" />

@@ -1,0 +1,49 @@
+<div class="stack subscription-page">
+  <section class="panel plans-hero">
+    <div>
+      <div class="badge">Subscription</div>
+      <h1>Choose your FlowBoard plan</h1>
+      <p class="muted">Unlock longer access windows and keep your workspace delivery moving without limits.</p>
+    </div>
+
+    <div class="actions">
+      <a class="button secondary" routerLink="/subscription/my">My Subscription</a>
+      <button class="button secondary" type="button" (click)="loadPlans()">Refresh</button>
+    </div>
+  </section>
+
+  <p class="error" *ngIf="error">{{ error }}</p>
+
+  <section class="plans-grid" *ngIf="!loading && plans.length; else plansFallback">
+    <article class="plan-card" *ngFor="let plan of plans" [class.recommended]="plan.isRecommended">
+      <header class="plan-head">
+        <div>
+          <p class="plan-name">{{ plan.name }}</p>
+          <h2>INR {{ plan.price }}</h2>
+          <p class="muted">{{ pricePerMonth(plan) }}</p>
+        </div>
+
+        <span class="recommended-pill" *ngIf="plan.isRecommended">Recommended</span>
+      </header>
+
+      <ul class="plan-points">
+        <li>Duration: {{ plan.durationDays }} days</li>
+        <li>One-time billing: INR {{ plan.price }}</li>
+        <li>Status tracking and renew cycle support</li>
+      </ul>
+
+      <div class="actions">
+        <button class="button accent" type="button" (click)="payNow(plan.plan)" [disabled]="!plan.plan || buying">
+          Buy Plan
+        </button>
+      </div>
+    </article>
+  </section>
+
+  <ng-template #plansFallback>
+    <section class="panel empty-state">
+      <p class="muted" *ngIf="loading">Loading subscription plans...</p>
+      <p class="muted" *ngIf="!loading && !plans.length">No plans available right now.</p>
+    </section>
+  </ng-template>
+</div>
