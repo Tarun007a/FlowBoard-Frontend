@@ -1,199 +1,352 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { finalize, forkJoin, interval, of, startWith, switchMap } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { NotificationResponse } from '../../core/models/notification.models';
 import { NotificationService } from '../../core/services/notification.service';
-import { readErrorMessage, splitCsvNumbers } from '../../core/utils/error.utils';
-import { NotificationType, RelatedType } from '../../core/models/notification.models';
+import { readErrorMessage } from '../../core/utils/error.utils';
 
 @Component({
   selector: 'app-notifications-page',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule],
   template: `
     <div class="stack">
-      <section class="hero">
-        <div class="badge">Notification APIs</div>
-        <h1>Dispatch and read notifications</h1>
-        <p class="muted">This page exercises single send, bulk send, read flags, unread counts, and cleanup endpoints.</p>
-      </section>
-
-      <section class="grid cols-2">
-        <div class="panel section-card stack">
-          <h2 class="section-title">Single notification</h2>
-          <form class="stack" [formGroup]="singleForm" (ngSubmit)="sendSingle()">
-            <div class="grid cols-2">
-              <div class="field"><label>Recipient ID</label><input type="number" formControlName="recipientId" /></div>
-              <div class="field"><label>Actor ID</label><input type="number" formControlName="actorId" /></div>
-              <div class="field"><label>Type</label><select formControlName="notificationType"><option *ngFor="let item of notificationTypes" [ngValue]="item">{{ item }}</option></select></div>
-              <div class="field"><label>Related ID</label><input type="number" formControlName="relatedId" /></div>
-              <div class="field"><label>Related type</label><select formControlName="relatedType"><option *ngFor="let item of relatedTypes" [ngValue]="item">{{ item }}</option></select></div>
-              <div class="field"><label>Title</label><input type="text" formControlName="title" /></div>
-              <div class="field"><label>Message</label><textarea formControlName="message"></textarea></div>
-            </div>
-            <div class="actions">
-              <button class="button accent" type="submit">Send</button>
-              <button class="button secondary" type="button" (click)="loadRecipient()">Load recipient</button>
-              <button class="button secondary" type="button" (click)="markRead()">Mark read</button>
-              <button class="button secondary" type="button" (click)="markAllRead()">Mark all read</button>
-              <button class="button secondary" type="button" (click)="deleteRead()">Delete read</button>
-            </div>
-          </form>
-        </div>
-
-        <div class="panel section-card stack">
-          <h2 class="section-title">Bulk send</h2>
-          <form class="stack" [formGroup]="bulkForm" (ngSubmit)="sendBulk()">
-            <div class="grid cols-2">
-              <div class="field"><label>Recipient IDs comma separated</label><textarea formControlName="recipientIds"></textarea></div>
-              <div class="field"><label>Actor ID</label><input type="number" formControlName="actorId" /></div>
-              <div class="field"><label>Type</label><select formControlName="notificationType"><option *ngFor="let item of notificationTypes" [ngValue]="item">{{ item }}</option></select></div>
-              <div class="field"><label>Related ID</label><input type="number" formControlName="relatedId" /></div>
-              <div class="field"><label>Related type</label><select formControlName="relatedType"><option *ngFor="let item of relatedTypes" [ngValue]="item">{{ item }}</option></select></div>
-              <div class="field"><label>Title</label><input type="text" formControlName="title" /></div>
-              <div class="field"><label>Message</label><textarea formControlName="message"></textarea></div>
-            </div>
-            <div class="actions"><button class="button accent" type="submit">Send bulk</button></div>
-          </form>
-          <div class="grid cols-2">
-            <div class="field"><label>Recipient ID</label><input type="number" [formControl]="recipientId" /></div>
-            <div class="field"><label>Notification ID</label><input type="number" [formControl]="notificationId" /></div>
-            <div class="field"><label>Page</label><input type="number" [formControl]="page" /></div>
-            <div class="field"><label>Size</label><input type="number" [formControl]="size" /></div>
-          </div>
-        </div>
-      </section>
-
       <section class="panel section-card stack">
-        <p class="error" *ngIf="error">{{ error }}</p>
-        <p class="success" *ngIf="message">{{ message }}</p>
-        <div class="muted" *ngIf="unreadCount !== null">Unread: {{ unreadCount }}</div>
+        <header class="notification-header">
+          <div>
+            <div class="badge">Notifications</div>
+            <h1 class="section-title">Your notifications</h1>
+            <p class="muted">Stay updated with mentions, assignments, and workspace activity.</p>
+          </div>
+          <div class="header-actions">
+            <span class="unread-pill" *ngIf="unreadCount > 0">{{ unreadCount }} unread</span>
+            <button class="button secondary" type="button" (click)="markAllAsRead()" [disabled]="loading || actionBusy || unreadCount <= 0">
+              Mark all read
+            </button>
+            <button class="button secondary" type="button" (click)="clearRead()" [disabled]="loading || actionBusy || !notifications.length">
+              Clear read
+            </button>
+          </div>
+        </header>
 
-        <table class="table" *ngIf="notifications.length">
-          <thead><tr><th>ID</th><th>Recipient</th><th>Title</th><th>Type</th><th>Related</th><th>Read</th></tr></thead>
-          <tbody>
-            <tr *ngFor="let item of notifications">
-              <td>{{ item.notificationId }}</td>
-              <td>{{ item.recipientId }}</td>
-              <td>{{ item.title }}</td>
-              <td>{{ item.notificationType }}</td>
-              <td>{{ item.relatedType }}:{{ item.relatedId }}</td>
-              <td>{{ item.isRead ? 'Yes' : 'No' }}</td>
-            </tr>
-          </tbody>
-        </table>
+        <div class="notification-state muted" *ngIf="loading">Loading notifications...</div>
+        <p class="error notification-state" *ngIf="!loading && error">{{ error }}</p>
+
+        <ul class="notification-list" *ngIf="!loading && !error && notifications.length">
+          <li
+            class="notification-item"
+            *ngFor="let item of notifications"
+            [class.unread]="!item.isRead"
+            (click)="onNotificationClick(item)">
+            <div class="notification-row">
+              <p class="notification-title">{{ item.title || 'Notification' }}</p>
+              <button
+                type="button"
+                class="item-delete"
+                (click)="deleteNotification(item.notificationId, $event)"
+                [disabled]="actionBusy"
+                aria-label="Delete notification">
+                Delete
+              </button>
+            </div>
+
+            <p class="notification-message">{{ item.message }}</p>
+            <div class="notification-meta">
+              <span class="notification-badge" [class.read]="item.isRead">{{ item.isRead ? 'Read' : 'Unread' }}</span>
+              <time class="notification-time">{{ formatNotificationDate(item.createdAt) }}</time>
+            </div>
+          </li>
+        </ul>
+
+        <div class="notification-state muted" *ngIf="!loading && !error && !notifications.length">
+          No notifications yet
+        </div>
       </section>
     </div>
   `,
-  styles: [` .section-card { padding: 18px; } `]
+  styles: [
+    `
+      .section-card {
+        padding: 18px;
+      }
+
+      .notification-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .section-title {
+        margin: 6px 0 4px;
+      }
+
+      .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .unread-pill {
+        display: inline-grid;
+        place-items: center;
+        border-radius: 999px;
+        padding: 0.24rem 0.58rem;
+        border: 1px solid #c7dcf7;
+        background: #edf5ff;
+        color: #1f4c80;
+        font-size: 0.74rem;
+        font-weight: 700;
+      }
+
+      .notification-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: 10px;
+      }
+
+      .notification-item {
+        border: 1px solid #dce8f7;
+        border-radius: 12px;
+        padding: 0.62rem 0.7rem;
+        background: #fafdff;
+        transition: background-color 120ms ease;
+        cursor: pointer;
+      }
+
+      .notification-item.unread {
+        border-color: #9ec5f3;
+        background: #edf5ff;
+      }
+
+      .notification-item:hover {
+        background: #eef6ff;
+      }
+
+      .notification-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      .notification-title {
+        margin: 0;
+        font-size: 0.88rem;
+        font-weight: 700;
+        color: #1f3f65;
+      }
+
+      .item-delete {
+        border: 1px solid #d4e5fa;
+        background: #ffffff;
+        color: #325a86;
+        border-radius: 8px;
+        padding: 0.24rem 0.48rem;
+        font-size: 0.72rem;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .notification-message {
+        margin: 0.3rem 0 0;
+        font-size: 0.82rem;
+        color: #405a79;
+        line-height: 1.4;
+      }
+
+      .notification-meta {
+        margin-top: 0.4rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      .notification-badge {
+        border-radius: 999px;
+        padding: 0.16rem 0.5rem;
+        border: 1px solid #9ec5f3;
+        background: #e7f1ff;
+        color: #1f4c80;
+        font-size: 0.7rem;
+        font-weight: 700;
+      }
+
+      .notification-badge.read {
+        border-color: #d3dbe7;
+        background: #f4f6f9;
+        color: #556987;
+      }
+
+      .notification-time {
+        color: #7288a4;
+        font-size: 0.74rem;
+      }
+
+      .notification-state {
+        padding: 0.6rem 0.1rem;
+        margin: 0;
+      }
+    `
+  ]
 })
-export class NotificationsComponent {
-  private readonly fb = inject(FormBuilder);
+export class NotificationsComponent implements OnInit {
   private readonly notificationService = inject(NotificationService);
+  private readonly destroyRef = inject(DestroyRef);
 
   error = '';
-  message = '';
   notifications: NotificationResponse[] = [];
-  unreadCount: number | null = null;
-  notificationTypes: NotificationType[] = ['ASSIGNMENT', 'MENTION', 'DUE_DATE', 'COMMENT', 'MOVE', 'SYSTEM', 'BROADCAST'];
-  relatedTypes: RelatedType[] = ['CARD', 'BOARD', 'COMMENT', 'WORKSPACE', 'USER'];
+  unreadCount = 0;
+  loading = true;
+  actionBusy = false;
 
-  singleForm = this.fb.nonNullable.group({
-    recipientId: [null as number | null, [Validators.required]],
-    actorId: [null as number | null, [Validators.required]],
-    notificationType: ['COMMENT' as NotificationType, [Validators.required]],
-    title: ['', [Validators.required]],
-    message: ['', [Validators.required]],
-    relatedId: [null as number | null, [Validators.required]],
-    relatedType: ['CARD' as RelatedType, [Validators.required]]
-  });
-
-  bulkForm = this.fb.nonNullable.group({
-    recipientIds: ['', [Validators.required]],
-    actorId: [null as number | null, [Validators.required]],
-    notificationType: ['COMMENT' as NotificationType, [Validators.required]],
-    title: ['', [Validators.required]],
-    message: ['', [Validators.required]],
-    relatedId: [null as number | null, [Validators.required]],
-    relatedType: ['CARD' as RelatedType, [Validators.required]]
-  });
-
-  recipientId = this.fb.nonNullable.control<number | null>(null);
-  notificationId = this.fb.nonNullable.control<number | null>(null);
-  page = this.fb.nonNullable.control(0);
-  size = this.fb.nonNullable.control(10);
-
-  sendSingle(): void {
-    if (this.singleForm.invalid) {
-      this.singleForm.markAllAsTouched();
-      return;
-    }
-
-    const value = this.singleForm.getRawValue();
-    this.notificationService.send({
-      recipientId: value.recipientId as number,
-      actorId: value.actorId as number,
-      notificationType: value.notificationType,
-      title: value.title,
-      message: value.message,
-      relatedId: value.relatedId as number,
-      relatedType: value.relatedType
-    }).subscribe({ next: (notification) => this.notifications = [notification, ...this.notifications], error: (err) => this.error = readErrorMessage(err) });
+  ngOnInit(): void {
+    interval(45000)
+      .pipe(
+        startWith(0),
+        takeUntilDestroyed(this.destroyRef),
+        switchMap(() => this.loadData())
+      )
+      .subscribe();
   }
 
-  sendBulk(): void {
-    if (this.bulkForm.invalid) {
-      this.bulkForm.markAllAsTouched();
+  onNotificationClick(notification: NotificationResponse): void {
+    if (notification.isRead || this.actionBusy) {
       return;
     }
 
-    const value = this.bulkForm.getRawValue();
-    const recipientIds = splitCsvNumbers(value.recipientIds);
-    this.notificationService.sendBulk({
-      recipientIds,
-      actorId: value.actorId as number,
-      notificationType: value.notificationType,
-      title: value.title,
-      message: value.message,
-      relatedId: value.relatedId as number,
-      relatedType: value.relatedType
-    }).subscribe({ next: (items) => this.notifications = items, error: (err) => this.error = readErrorMessage(err) });
+    this.actionBusy = true;
+    this.error = '';
+
+    this.notificationService
+      .markAsRead(notification.notificationId)
+      .pipe(finalize(() => (this.actionBusy = false)))
+      .subscribe({
+        next: () => {
+          this.notifications = this.notifications.map((item) =>
+            item.notificationId === notification.notificationId
+              ? { ...item, isRead: true }
+              : item
+          );
+          this.unreadCount = Math.max(0, this.unreadCount - 1);
+        },
+        error: (err) => {
+          this.error = readErrorMessage(err);
+          this.notificationService.error(this.error);
+        }
+      });
   }
 
-  loadRecipient(): void {
-    const recipientId = this.recipientId.value || this.singleForm.controls.recipientId.value;
-    if (!recipientId) {
-      this.error = 'Recipient id is required';
+  markAllAsRead(): void {
+    if (this.actionBusy || this.unreadCount <= 0) {
       return;
     }
-    this.notificationService.getByRecipient(recipientId, this.page.value, this.size.value).subscribe({ next: (page) => this.notifications = page.content, error: (err) => this.error = readErrorMessage(err) });
-    this.notificationService.unreadCount(recipientId).subscribe({ next: (count) => this.unreadCount = count, error: () => this.unreadCount = null });
+
+    this.actionBusy = true;
+    this.error = '';
+
+    this.notificationService
+      .markAllAsRead()
+      .pipe(finalize(() => (this.actionBusy = false)))
+      .subscribe({
+        next: () => {
+          this.notifications = this.notifications.map((item) => ({ ...item, isRead: true }));
+          this.unreadCount = 0;
+        },
+        error: (err) => {
+          this.error = readErrorMessage(err);
+          this.notificationService.error(this.error);
+        }
+      });
   }
 
-  markRead(): void {
-    const notificationId = this.notificationId.value;
-    if (!notificationId) {
-      this.error = 'Notification id is required';
+  deleteNotification(notificationId: number, event: MouseEvent): void {
+    event.stopPropagation();
+
+    if (this.actionBusy) {
       return;
     }
-    this.notificationService.markRead(notificationId).subscribe({ next: (message) => this.message = message, error: (err) => this.error = readErrorMessage(err) });
+
+    this.actionBusy = true;
+    this.error = '';
+
+    const target = this.notifications.find((item) => item.notificationId === notificationId) ?? null;
+
+    this.notificationService
+      .deleteNotification(notificationId)
+      .pipe(finalize(() => (this.actionBusy = false)))
+      .subscribe({
+        next: () => {
+          this.notifications = this.notifications.filter((item) => item.notificationId !== notificationId);
+          if (target && !target.isRead) {
+            this.unreadCount = Math.max(0, this.unreadCount - 1);
+          }
+        },
+        error: (err) => {
+          this.error = readErrorMessage(err);
+          this.notificationService.error(this.error);
+        }
+      });
   }
 
-  markAllRead(): void {
-    const recipientId = this.recipientId.value || this.singleForm.controls.recipientId.value;
-    if (!recipientId) {
-      this.error = 'Recipient id is required';
+  clearRead(): void {
+    if (this.actionBusy || !this.notifications.length) {
       return;
     }
-    this.notificationService.markAllRead(recipientId).subscribe({ next: (message) => this.message = message, error: (err) => this.error = readErrorMessage(err) });
+
+    this.actionBusy = true;
+    this.error = '';
+
+    this.notificationService
+      .clearReadNotifications()
+      .pipe(finalize(() => (this.actionBusy = false)))
+      .subscribe({
+        next: () => {
+          this.notifications = this.notifications.filter((item) => !item.isRead);
+        },
+        error: (err) => {
+          this.error = readErrorMessage(err);
+          this.notificationService.error(this.error);
+        }
+      });
   }
 
-  deleteRead(): void {
-    const recipientId = this.recipientId.value || this.singleForm.controls.recipientId.value;
-    if (!recipientId) {
-      this.error = 'Recipient id is required';
-      return;
+  formatNotificationDate(value: string): string {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return value;
     }
-    this.notificationService.deleteRead(recipientId).subscribe({ next: (message) => this.message = message, error: (err) => this.error = readErrorMessage(err) });
+
+    return date.toLocaleString();
+  }
+
+  private loadData() {
+    this.loading = true;
+    this.error = '';
+
+    return forkJoin({
+      page: this.notificationService.getMyNotifications(0, 30, 'notificationId', 'DESC'),
+      unread: this.notificationService.getUnreadCount().pipe(catchError(() => of(0)))
+    }).pipe(
+      finalize(() => (this.loading = false)),
+      catchError((err) => {
+        this.notifications = [];
+        this.unreadCount = 0;
+        this.error = readErrorMessage(err);
+        return of({ page: { content: [] } as { content: NotificationResponse[] }, unread: 0 });
+      }),
+      switchMap((result) => {
+        this.notifications = result.page.content;
+        this.unreadCount = result.unread;
+        return of(result);
+      })
+    );
   }
 }

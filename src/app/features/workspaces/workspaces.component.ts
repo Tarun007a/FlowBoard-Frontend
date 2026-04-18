@@ -55,15 +55,18 @@ interface WorkspaceCardMeta {
               [attr.aria-busy]="openingWorkspaceId === workspace.workspaceId"
               [ngStyle]="{ 'background': workspaceGradient(workspace.workspaceId) }"
               (click)="openWorkspace(workspace)">
-              <div class="owner-star" *ngIf="isOwner(workspace)" title="My Workspace" aria-label="My Workspace">
-                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                  <path d="M12 2.75l2.85 5.78 6.37.93-4.61 4.49 1.09 6.35L12 17.3 6.3 20.3l1.09-6.35-4.61-4.49 6.37-.93L12 2.75z" />
-                </svg>
+              <div class="card-top">
+                <span class="visibility-pill">{{ workspace.visibility }}</span>
+
+                <div class="owner-star" *ngIf="isOwner(workspace)" title="My Workspace" aria-label="My Workspace">
+                  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M12 2.75l2.85 5.78 6.37.93-4.61 4.49 1.09 6.35L12 17.3 6.3 20.3l1.09-6.35-4.61-4.49 6.37-.93L12 2.75z" />
+                  </svg>
+                </div>
               </div>
 
               <header class="card-head">
                 <h3>{{ workspace.name }}</h3>
-                <span class="visibility-pill">{{ workspace.visibility }}</span>
               </header>
 
               <p class="card-description">{{ workspace.description || 'No description provided.' }}</p>
@@ -292,19 +295,26 @@ interface WorkspaceCardMeta {
         cursor: pointer;
       }
 
+      .card-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 0.6rem;
+        min-height: 30px;
+      }
+
       .owner-star {
-        position: absolute;
-        top: 0.78rem;
-        right: 0.8rem;
         width: 30px;
         height: 30px;
         border-radius: 999px;
         display: grid;
         place-items: center;
+        flex-shrink: 0;
         color: #e3aa2b;
         background: rgba(255, 255, 255, 0.86);
         border: 1px solid #f2d18d;
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+        z-index: 1;
       }
 
       .workspace-card:hover {
@@ -321,14 +331,14 @@ interface WorkspaceCardMeta {
       .card-head {
         display: flex;
         align-items: flex-start;
-        justify-content: space-between;
-        gap: 0.6rem;
+        gap: 0.45rem;
       }
 
       .card-head h3 {
         margin: 0;
         font-size: 1.1rem;
         line-height: 1.25;
+        overflow-wrap: anywhere;
       }
 
       .visibility-pill {

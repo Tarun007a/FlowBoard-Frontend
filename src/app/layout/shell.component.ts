@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, DestroyRef, ElementRef, HostListener, NgZone, OnInit, ViewChild, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationCancel, NavigationEnd, NavigationError, NavigationStart, Router, RouterEvent, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { interval } from 'rxjs';
 import { AuthStoreService } from '../core/services/auth-store.service';
 import { AuthService } from '../core/services/auth.service';
 import { NotificationService } from '../core/services/notification.service';
@@ -41,14 +42,23 @@ import { SubscriptionService } from '../core/services/subscription.service';
                   <path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
                   <path d="M13.73 21a2 2 0 01-3.46 0" />
                 </svg>
-                <span class="count-pill" *ngIf="unreadCount !== null">{{ unreadCount }}</span>
+                <span class="count-pill" *ngIf="unreadCount > 0">{{ unreadCount }}</span>
               </button>
 
               <section class="notification-panel" *ngIf="showNotificationsPanel" (click)="$event.stopPropagation()">
                 <header class="notification-head">
                   <h3>Notifications</h3>
-                  <button type="button" class="panel-refresh" (click)="refreshNotificationPanel()">Refresh</button>
+                  <span class="panel-unread" *ngIf="unreadCount > 0">{{ unreadCount }} unread</span>
                 </header>
+
+                <div class="notification-tools">
+                  <button type="button" class="panel-tool" (click)="markAllNotificationsAsRead()" [disabled]="notificationsLoading || panelActionLoading || unreadCount <= 0">
+                    Mark all read
+                  </button>
+                  <button type="button" class="panel-tool" (click)="clearReadNotifications()" [disabled]="notificationsLoading || panelActionLoading || !notifications.length">
+                    Clear read
+                  </button>
+                </div>
 
                 <div class="notification-state muted" *ngIf="notificationsLoading">Loading notifications...</div>
                 <p class="error notification-state" *ngIf="!notificationsLoading && notificationsError">{{ notificationsError }}</p>
@@ -59,7 +69,17 @@ import { SubscriptionService } from '../core/services/subscription.service';
                     *ngFor="let item of notifications"
                     [class.unread]="!item.isRead"
                     (click)="onNotificationClick(item)">
-                    <p class="notification-title">{{ item.title || 'Notification' }}</p>
+                    <div class="notification-item-head">
+                      <p class="notification-title">{{ item.title || 'Notification' }}</p>
+                      <button
+                        type="button"
+                        class="item-delete"
+                        (click)="deleteNotificationFromPanel(item.notificationId, $event)"
+                        [disabled]="panelActionLoading"
+                        aria-label="Delete notification">
+                        Delete
+                      </button>
+                    </div>
                     <p class="notification-message">{{ item.message }}</p>
                     <time class="notification-time">{{ formatNotificationDate(item.createdAt) }}</time>
                   </li>
@@ -269,7 +289,23 @@ import { SubscriptionService } from '../core/services/subscription.service';
         color: #1f3c5f;
       }
 
-      .panel-refresh {
+      .panel-unread {
+        border-radius: 999px;
+        padding: 0.16rem 0.48rem;
+        border: 1px solid #c7dcf7;
+        background: #edf5ff;
+        color: #315985;
+        font-size: 0.72rem;
+        font-weight: 700;
+      }
+
+      .notification-tools {
+        display: flex;
+        gap: 8px;
+        padding: 0.1rem 0.1rem 0.52rem;
+      }
+
+      .panel-tool {
         border: 1px solid #c9dbf4;
         background: #edf5ff;
         color: #315985;
@@ -280,8 +316,13 @@ import { SubscriptionService } from '../core/services/subscription.service';
         cursor: pointer;
       }
 
-      .panel-refresh:hover {
+      .panel-tool:hover {
         background: #e2efff;
+      }
+
+      .panel-tool:disabled {
+        cursor: not-allowed;
+        opacity: 0.6;
       }
 
       .notification-list {
@@ -309,11 +350,29 @@ import { SubscriptionService } from '../core/services/subscription.service';
         background: #eef6ff;
       }
 
+      .notification-item-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
       .notification-title {
         margin: 0;
         font-size: 0.82rem;
         font-weight: 700;
         color: #1f3f65;
+      }
+
+      .item-delete {
+        border: 1px solid #d4e5fa;
+        background: #ffffff;
+        color: #325a86;
+        border-radius: 8px;
+        padding: 0.18rem 0.42rem;
+        font-size: 0.7rem;
+        font-weight: 700;
+        cursor: pointer;
       }
 
       .notification-message {
@@ -472,12 +531,13 @@ export class ShellComponent implements OnInit {
 
   session: AuthSession | null = this.authStore.snapshot();
   profile: UserDto | null = null;
-  unreadCount: number | null = null;
+  unreadCount = 0;
   showNotificationsPanel = false;
   showProfileMenu = false;
   notifications: NotificationResponse[] = [];
   notificationsLoading = false;
   notificationsError = '';
+  panelActionLoading = false;
   routeLoading = false;
   private notificationsLoadedForUserId: number | null = null;
 
@@ -495,7 +555,11 @@ export class ShellComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.session = this.authStore.restore();
+    this.authStore.restore();
+
+    this.authStore.session$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((session) => this.onSessionChanged(session));
 
     this.router.events
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -507,13 +571,18 @@ export class ShellComponent implements OnInit {
         this.profile = profile;
       });
 
-    this.profileState.loadProfile().subscribe({
-      error: () => {
-        // Keep navbar usable even if profile fetch fails.
-      }
-    });
+    interval(45000)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        if (!this.session?.userId) {
+          return;
+        }
 
-    this.refreshNotifications();
+        this.refreshNotifications();
+        if (this.showNotificationsPanel) {
+          this.loadNotifications(true);
+        }
+      });
   }
 
   @HostListener('document:keydown.escape')
@@ -570,17 +639,12 @@ export class ShellComponent implements OnInit {
     this.router.navigate(['/profile']);
   }
 
-  refreshNotificationPanel(): void {
-    this.loadNotifications(true);
-    this.refreshNotifications();
-  }
-
   onNotificationClick(notification: NotificationResponse): void {
     if (notification.isRead) {
       return;
     }
 
-    this.notificationService.markRead(notification.notificationId).subscribe({
+    this.notificationService.markAsRead(notification.notificationId).subscribe({
       next: () => {
         this.notifications = this.notifications.map((item) =>
           item.notificationId === notification.notificationId
@@ -595,6 +659,65 @@ export class ShellComponent implements OnInit {
     });
   }
 
+  markAllNotificationsAsRead(): void {
+    if (this.panelActionLoading || this.unreadCount <= 0) {
+      return;
+    }
+
+    this.panelActionLoading = true;
+    this.notificationService.markAllAsRead().subscribe({
+      next: () => {
+        this.notifications = this.notifications.map((item) => ({ ...item, isRead: true }));
+        this.unreadCount = 0;
+        this.panelActionLoading = false;
+      },
+      error: () => {
+        this.panelActionLoading = false;
+      }
+    });
+  }
+
+  clearReadNotifications(): void {
+    if (this.panelActionLoading || !this.notifications.length) {
+      return;
+    }
+
+    this.panelActionLoading = true;
+    this.notificationService.clearReadNotifications().subscribe({
+      next: () => {
+        this.notifications = this.notifications.filter((item) => !item.isRead);
+        this.panelActionLoading = false;
+      },
+      error: () => {
+        this.panelActionLoading = false;
+      }
+    });
+  }
+
+  deleteNotificationFromPanel(notificationId: number, event: MouseEvent): void {
+    event.stopPropagation();
+
+    if (this.panelActionLoading) {
+      return;
+    }
+
+    this.panelActionLoading = true;
+    const target = this.notifications.find((item) => item.notificationId === notificationId) ?? null;
+
+    this.notificationService.deleteNotification(notificationId).subscribe({
+      next: () => {
+        this.notifications = this.notifications.filter((item) => item.notificationId !== notificationId);
+        if (target && !target.isRead) {
+          this.unreadCount = Math.max(0, this.unreadCount - 1);
+        }
+        this.panelActionLoading = false;
+      },
+      error: () => {
+        this.panelActionLoading = false;
+      }
+    });
+  }
+
   formatNotificationDate(value: string): string {
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) {
@@ -605,15 +728,14 @@ export class ShellComponent implements OnInit {
   }
 
   refreshNotifications(): void {
-    const userId = this.session?.userId;
-    if (!userId) {
-      this.unreadCount = null;
+    if (!this.session?.userId) {
+      this.unreadCount = 0;
       return;
     }
 
-    this.notificationService.unreadCount(userId).subscribe({
+    this.notificationService.getUnreadCount().subscribe({
       next: (count) => (this.unreadCount = count),
-      error: () => (this.unreadCount = null)
+      error: () => (this.unreadCount = 0)
     });
   }
 
@@ -633,7 +755,7 @@ export class ShellComponent implements OnInit {
     this.notificationsLoading = true;
     this.notificationsError = '';
 
-    this.notificationService.getByRecipient(userId, 0, 20, 'createdAt', 'DESC').subscribe({
+    this.notificationService.getMyNotifications(0, 20, 'notificationId', 'DESC').subscribe({
       next: (page) => {
         this.notifications = page.content;
         this.notificationsLoadedForUserId = userId;
@@ -668,5 +790,38 @@ export class ShellComponent implements OnInit {
         this.cdr.detectChanges();
       }
     });
+  }
+
+  private onSessionChanged(session: AuthSession | null): void {
+    const previousUserId = this.session?.userId ?? null;
+    this.session = session;
+
+    if (!session) {
+      this.unreadCount = 0;
+      this.notifications = [];
+      this.notificationsError = '';
+      this.notificationsLoading = false;
+      this.panelActionLoading = false;
+      this.notificationsLoadedForUserId = null;
+      return;
+    }
+
+    const shouldReloadUserState =
+      previousUserId !== session.userId || this.profile?.userId !== session.userId;
+
+    if (!shouldReloadUserState) {
+      return;
+    }
+
+    this.notificationsLoadedForUserId = null;
+    this.profileState.loadProfile(true).subscribe({
+      error: () => {
+        // Keep navbar usable even if profile fetch fails.
+      }
+    });
+    this.refreshNotifications();
+    if (this.showNotificationsPanel) {
+      this.loadNotifications(true);
+    }
   }
 }

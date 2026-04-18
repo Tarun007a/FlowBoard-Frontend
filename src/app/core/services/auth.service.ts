@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
-import { map, Observable } from 'rxjs';
+import { catchError, map, Observable, of } from 'rxjs';
 import { ApiService } from './api.service';
 import { AuthStoreService } from './auth-store.service';
+import { CurrentUserProfileService } from './current-user-profile.service';
 import {
   ForgetPasswordRequest,
   LoginRequest,
@@ -13,7 +14,8 @@ import {
 export class AuthService {
   constructor(
     private readonly api: ApiService,
-    private readonly authStore: AuthStoreService
+    private readonly authStore: AuthStoreService,
+    private readonly profileState: CurrentUserProfileService
   ) {}
 
   login(request: LoginRequest): Observable<string> {
@@ -50,7 +52,25 @@ export class AuthService {
     return this.api.postText('/api/v1/auth/forget', request);
   }
 
+  handleOAuthToken(token: string): Observable<boolean> {
+    const normalizedToken = token.trim().replace(/^"|"$/g, '');
+    if (!normalizedToken) {
+      return of(false);
+    }
+
+    const session = this.authStore.saveToken(normalizedToken);
+    if (!session) {
+      return of(false);
+    }
+
+    return this.profileState.loadProfile(true).pipe(
+      map(() => true),
+      catchError(() => of(true))
+    );
+  }
+
   logout(): void {
+    this.profileState.clear();
     this.authStore.clear();
   }
 }

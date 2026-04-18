@@ -1,7 +1,8 @@
 import { Injectable, OnDestroy } from '@angular/core';
-import { BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, Observable, throwError } from 'rxjs';
 import { ApiPage } from '../models/api-page.model';
-import { BulkNotificationRequest, NotificationRequest, NotificationResponse } from '../models/notification.models';
+import { NotificationResponse } from '../models/notification.models';
+import { AuthStoreService } from './auth-store.service';
 import { ApiService } from './api.service';
 
 export type UiNotificationType = 'success' | 'error' | 'info';
@@ -19,7 +20,10 @@ export class NotificationService implements OnDestroy {
   private notificationSeed = 0;
   private dismissTimer: ReturnType<typeof setTimeout> | null = null;
 
-  constructor(private readonly api: ApiService) {}
+  constructor(
+    private readonly api: ApiService,
+    private readonly authStore: AuthStoreService
+  ) {}
 
   success(message: string): void {
     this.present('success', message);
@@ -43,36 +47,57 @@ export class NotificationService implements OnDestroy {
     }
   }
 
-  send(request: NotificationRequest) {
-    return this.api.post<NotificationResponse>('/api/v1/notifications/send', request);
+  getMyNotifications(page = 0, size = 20, sortBy = 'notificationId', direction = 'DESC'): Observable<ApiPage<NotificationResponse>> {
+    const recipientId = this.currentUserId();
+    if (!recipientId) {
+      return throwError(() => new Error('User not authenticated'));
+    }
+
+    return this.api.get<ApiPage<NotificationResponse>>(`/api/v1/notifications/recipient/${recipientId}`, {
+      page,
+      size,
+      sortBy,
+      direction
+    });
   }
 
-  sendBulk(request: BulkNotificationRequest) {
-    return this.api.post<NotificationResponse[]>('/api/v1/notifications/bulk', request);
-  }
+  getUnreadCount(): Observable<number> {
+    const recipientId = this.currentUserId();
+    if (!recipientId) {
+      return throwError(() => new Error('User not authenticated'));
+    }
 
-  markRead(notificationId: number) {
-    return this.api.putText(`/api/v1/notifications/read/${notificationId}`, {});
-  }
-
-  markAllRead(recipientId: number) {
-    return this.api.putText(`/api/v1/notifications/readAll/${recipientId}`, {});
-  }
-
-  deleteRead(recipientId: number) {
-    return this.api.deleteText(`/api/v1/notifications/delete-read/${recipientId}`);
-  }
-
-  getByRecipient(recipientId: number, page = 0, size = 10, sortBy = 'createdAt', direction = 'DESC') {
-    return this.api.get<ApiPage<NotificationResponse>>(`/api/v1/notifications/recipient/${recipientId}`, { page, size, sortBy, direction });
-  }
-
-  unreadCount(recipientId: number) {
     return this.api.get<number>(`/api/v1/notifications/recipient/unread-count/${recipientId}`);
   }
 
-  delete(notificationId: number) {
+  markAsRead(notificationId: number): Observable<string> {
+    return this.api.putText(`/api/v1/notifications/read/${notificationId}`, {});
+  }
+
+  markAllAsRead(): Observable<string> {
+    const recipientId = this.currentUserId();
+    if (!recipientId) {
+      return throwError(() => new Error('User not authenticated'));
+    }
+
+    return this.api.putText(`/api/v1/notifications/readAll/${recipientId}`, {});
+  }
+
+  clearReadNotifications(): Observable<string> {
+    const recipientId = this.currentUserId();
+    if (!recipientId) {
+      return throwError(() => new Error('User not authenticated'));
+    }
+
+    return this.api.deleteText(`/api/v1/notifications/delete-read/${recipientId}`);
+  }
+
+  deleteNotification(notificationId: number): Observable<string> {
     return this.api.deleteText(`/api/v1/notifications/delete/${notificationId}`);
+  }
+
+  private currentUserId(): number | null {
+    return this.authStore.snapshot()?.userId ?? null;
   }
 
   private present(type: UiNotificationType, message: string): void {

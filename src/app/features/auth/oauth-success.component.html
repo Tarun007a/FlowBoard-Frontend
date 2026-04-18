@@ -1,0 +1,8 @@
+<div class="oauth-page">
+  <section class="oauth-card panel" role="status" aria-live="polite">
+    <div class="spinner" [class.error-spinner]="isFailure" aria-hidden="true"></div>
+    <h1>{{ statusMessage }}</h1>
+    <p class="muted" *ngIf="!isFailure">Please wait while we complete your Google sign in.</p>
+    <p class="muted" *ngIf="isFailure">Taking you back to login in a moment.</p>
+  </section>
+</div>

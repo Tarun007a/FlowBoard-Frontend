@@ -143,7 +143,7 @@ export class DashboardComponent implements OnInit {
       return;
     }
 
-    this.notificationService.unreadCount(this.session.userId).subscribe({
+    this.notificationService.getUnreadCount().subscribe({
       next: (count) => (this.unreadCount = count),
       error: () => (this.unreadCount = null)
     });

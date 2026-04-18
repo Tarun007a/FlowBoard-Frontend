@@ -7,8 +7,8 @@
   --surface-line: #d7e3f4;
   --text: #1d2a3a;
   --muted: #5f6f83;
-  --accent: #2b7edb;
-  --accent-strong: #1f66bb;
+  --accent: #3b82f6;
+  --accent-strong: #2563eb;
   --danger: #b42318;
   --radius-lg: 16px;
   --radius-md: 12px;
@@ -109,7 +109,7 @@ a {
 
 .button {
   border: 0;
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 0.62rem 0.9rem;
   font-weight: 700;
   cursor: pointer;
@@ -121,23 +121,30 @@ a {
 }
 
 .button.secondary {
-  color: #294668;
-  background: #edf4ff;
-  border: 1px solid #c8dcf6;
+  color: #1e40af;
+  background: #ffffff;
+  border: 1px solid #93c5fd;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1);
 }
 
 .button.secondary:hover {
-  background: #e3efff;
+  background: #eff6ff;
+  border-color: #60a5fa;
 }
 
 .button.accent {
   color: #ffffff;
-  background: linear-gradient(140deg, var(--accent), var(--accent-strong));
-  box-shadow: 0 8px 18px rgba(31, 102, 187, 0.3);
+  background: #3b82f6;
+  box-shadow: 0 10px 20px rgba(37, 99, 235, 0.32);
 }
 
 .button.accent:hover {
-  background: linear-gradient(140deg, #2574cd, #1958a8);
+  background: #2563eb;
+}
+
+.button:focus-visible {
+  outline: 3px solid rgba(59, 130, 246, 0.33);
+  outline-offset: 2px;
 }
 
 .button.danger {

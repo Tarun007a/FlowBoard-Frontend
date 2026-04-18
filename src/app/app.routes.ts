@@ -5,6 +5,7 @@ import { ShellComponent } from './layout/shell.component';
 import { AuthShellComponent } from './features/auth/auth-shell.component';
 import { ResetPasswordComponent } from './features/auth/reset-password.component';
 import { VerifyAccountComponent } from './features/auth/verify-account.component';
+import { OAuthSuccessComponent } from './features/auth/oauth-success.component';
 import { WorkspacesComponent } from './features/workspaces/workspaces.component';
 import { CardsComponent } from './features/cards/cards.component';
 import { WorkspaceDetailComponent } from './features/workspace-detail/workspace-detail.component';
@@ -19,6 +20,7 @@ export const routes: Routes = [
 	{ path: 'signup', component: AuthShellComponent, canActivate: [guestGuard] },
 	{ path: 'reset-password', component: ResetPasswordComponent, canActivate: [guestGuard] },
 	{ path: 'verify/:token', component: VerifyAccountComponent },
+	{ path: 'oauth-success', component: OAuthSuccessComponent },
 	{
 		path: '',
 		component: ShellComponent,

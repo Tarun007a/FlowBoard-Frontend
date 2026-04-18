@@ -27,7 +27,7 @@ interface BoardCardMeta {
   template: `
     <div class="workspace-detail-page">
       <section class="panel workspace-banner" *ngIf="workspace; else loadingWorkspace">
-        <div>
+        <div class="workspace-header-main">
           <div class="workspace-chip">Workspace</div>
           <h1>{{ workspace.name }}</h1>
           <p class="muted">{{ workspace.description || 'No description provided.' }}</p>
@@ -35,62 +35,25 @@ interface BoardCardMeta {
           <div class="workspace-meta">
             <span class="meta-pill">Visibility: {{ workspace.visibility }}</span>
             <span class="meta-pill">Members: {{ memberCount }}</span>
+            <span class="meta-pill owner-badge" *ngIf="workspace.ownerId === session?.userId">★ Owner</span>
             <span class="meta-pill" *ngIf="workspace.ownerId === session?.userId">Role: Owner</span>
             <span class="meta-pill" *ngIf="workspace.ownerId !== session?.userId">Role: Member</span>
           </div>
         </div>
 
         <div class="banner-actions">
+          <button class="button accent" type="button" *ngIf="canManageWorkspace" (click)="openBoardModal()">Create Board</button>
+          <button class="button secondary" type="button" (click)="openMembersPanel()">Members</button>
           <a class="button secondary" routerLink="/workspaces">Back</a>
           <button class="button secondary" type="button" *ngIf="canManageWorkspace" (click)="openUpdateModal()">Update Workspace</button>
           <button class="button danger" type="button" *ngIf="canManageWorkspace" (click)="deleteWorkspace()">Delete Workspace</button>
-          <button class="button accent" type="button" *ngIf="canManageWorkspace" (click)="openBoardModal()">Create Board</button>
-          <button class="button secondary" type="button" *ngIf="canManageWorkspace" (click)="openMemberModal()">Add Member</button>
         </div>
       </section>
 
-      <section class="panel section-card" *ngIf="workspace">
-        <header class="section-head members-head">
-          <div>
-            <h2>Members ({{ memberCount }})</h2>
-            <p class="muted">People with access to this workspace</p>
-          </div>
-        </header>
-
-        <section class="member-list" *ngIf="workspaceMembers.length; else emptyMembers">
-          <article class="member-row" *ngFor="let member of workspaceMembers; trackBy: trackByMemberId">
-            <div class="member-main">
-              <strong>{{ memberDisplayName(member) }}</strong>
-              <span class="muted">{{ memberEmail(member) || 'Email unavailable' }}</span>
-            </div>
-
-            <span class="role-pill" [class.owner]="isOwnerMember(member)">
-              {{ memberRole(member) }}
-            </span>
-
-            <button
-              class="button danger"
-              type="button"
-              *ngIf="canRemoveMember(member)"
-              [disabled]="removingMemberUserId === member.userId"
-              (click)="removeMember(member)">
-              {{ removingMemberUserId === member.userId ? 'Removing...' : 'Remove' }}
-            </button>
-          </article>
-        </section>
-
-        <ng-template #emptyMembers>
-          <section class="members-empty">
-            <p class="muted" *ngIf="loadingMembers">Loading members...</p>
-            <p class="muted" *ngIf="!loadingMembers">No members found.</p>
-          </section>
-        </ng-template>
-      </section>
-
-      <section class="panel section-card">
+      <section class="panel section-card boards-section">
         <header class="section-head">
           <h2>Boards</h2>
-          <p class="muted">Boards available in this workspace</p>
+          <p class="muted">Boards available in this workspace.</p>
         </header>
 
         <section class="board-grid" *ngIf="boards.length; else emptyBoards">
@@ -126,7 +89,7 @@ interface BoardCardMeta {
       <ng-template #emptyBoards>
         <section class="panel empty-state-box" *ngIf="workspace">
           <div class="workspace-chip">No Boards</div>
-          <h2>No boards in this workspace</h2>
+          <h2>No boards yet. Create your first board.</h2>
           <p class="muted">Create a board to start organizing lists and cards.</p>
           <button class="button accent" type="button" *ngIf="canManageWorkspace" (click)="openBoardModal()">Create Board</button>
         </section>
@@ -142,6 +105,60 @@ interface BoardCardMeta {
 
       <p class="error" *ngIf="error">{{ error }}</p>
     </div>
+
+    <div class="members-overlay" *ngIf="showMembersPanel" (click)="closeMembersPanel()"></div>
+    <aside class="panel members-drawer" [class.open]="showMembersPanel" [attr.aria-hidden]="!showMembersPanel">
+      <header class="drawer-head">
+        <div>
+          <div class="workspace-chip">Workspace Members</div>
+          <h2>Members ({{ memberCount }})</h2>
+          <p class="muted">Manage workspace access without leaving boards.</p>
+        </div>
+        <button class="button secondary" type="button" (click)="closeMembersPanel()">Close</button>
+      </header>
+
+      <form class="stack member-add-form" [formGroup]="memberForm" (ngSubmit)="addMember()" *ngIf="canManageWorkspace">
+        <div class="field">
+          <label>User ID</label>
+          <input type="number" formControlName="userId" placeholder="Enter user id" />
+        </div>
+
+        <div class="actions">
+          <button class="button accent" type="submit" [disabled]="memberForm.invalid || addingMember">
+            {{ addingMember ? 'Adding...' : 'Add Member' }}
+          </button>
+        </div>
+      </form>
+
+      <section class="member-list" *ngIf="workspaceMembers.length; else emptyMembersDrawer">
+        <article class="member-row" *ngFor="let member of workspaceMembers; trackBy: trackByMemberId">
+          <div class="member-main">
+            <strong>{{ memberDisplayName(member) }}</strong>
+            <span class="muted">{{ memberEmail(member) || 'Email unavailable' }}</span>
+          </div>
+
+          <span class="role-pill" [class.owner]="isOwnerMember(member)">
+            {{ memberRole(member) }}
+          </span>
+
+          <button
+            class="button danger"
+            type="button"
+            *ngIf="canRemoveMember(member)"
+            [disabled]="removingMemberUserId === member.userId"
+            (click)="removeMember(member)">
+            {{ removingMemberUserId === member.userId ? 'Removing...' : 'Remove' }}
+          </button>
+        </article>
+      </section>
+
+      <ng-template #emptyMembersDrawer>
+        <section class="members-empty">
+          <p class="muted" *ngIf="loadingMembers">Loading members...</p>
+          <p class="muted" *ngIf="!loadingMembers">No members found.</p>
+        </section>
+      </ng-template>
+    </aside>
 
     <div class="modal-overlay" *ngIf="showUpdateModal" (click)="closeUpdateModal()">
       <section class="panel modal-card" (click)="$event.stopPropagation()">
@@ -232,28 +249,6 @@ interface BoardCardMeta {
       </section>
     </div>
 
-    <div class="modal-overlay" *ngIf="showMemberModal" (click)="closeMemberModal()">
-      <section class="panel modal-card member-modal" (click)="$event.stopPropagation()">
-        <header class="modal-head">
-          <div>
-            <div class="workspace-chip">Workspace Member</div>
-            <h2>Add member</h2>
-          </div>
-          <button class="button secondary" type="button" (click)="closeMemberModal()">Close</button>
-        </header>
-
-        <form class="stack" [formGroup]="memberForm" (ngSubmit)="addMember()">
-          <div class="field">
-            <label>User ID</label>
-            <input type="number" formControlName="userId" placeholder="Enter user id" />
-          </div>
-
-          <div class="actions">
-            <button class="button accent" type="submit" [disabled]="memberForm.invalid">Add Member</button>
-          </div>
-        </form>
-      </section>
-    </div>
   `,
   styles: [
     `
@@ -280,6 +275,11 @@ interface BoardCardMeta {
       .workspace-banner .muted {
         color: #5a7495;
         margin: 0;
+      }
+
+      .workspace-header-main {
+        display: grid;
+        gap: 0.2rem;
       }
 
       .workspace-chip {
@@ -312,6 +312,12 @@ interface BoardCardMeta {
         font-weight: 700;
       }
 
+      .owner-badge {
+        border-color: #f2d79f;
+        background: #fff7e8;
+        color: #8a6211;
+      }
+
       .banner-actions {
         display: flex;
         gap: 0.55rem;
@@ -321,6 +327,10 @@ interface BoardCardMeta {
 
       .section-card {
         padding: 1rem;
+      }
+
+      .boards-section {
+        min-height: 280px;
       }
 
       .section-head {
@@ -395,6 +405,52 @@ interface BoardCardMeta {
         border-radius: 12px;
         background: #f6fbff;
         padding: 0.78rem;
+      }
+
+      .members-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 79;
+        background: rgba(15, 23, 42, 0.24);
+      }
+
+      .members-drawer {
+        position: fixed;
+        top: 0;
+        right: 0;
+        z-index: 80;
+        width: min(460px, 100%);
+        height: 100dvh;
+        border-radius: 18px 0 0 18px;
+        border-right: 0;
+        padding: 1rem;
+        overflow-y: auto;
+        transform: translateX(105%);
+        transition: transform 180ms ease;
+      }
+
+      .members-drawer.open {
+        transform: translateX(0);
+      }
+
+      .drawer-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.8rem;
+        margin-bottom: 0.75rem;
+      }
+
+      .drawer-head h2 {
+        margin: 0.42rem 0 0;
+        color: #26496d;
+      }
+
+      .member-add-form {
+        border: 1px solid #d6e5f7;
+        border-radius: 12px;
+        background: #f6fbff;
+        padding: 0.75rem;
+        margin-bottom: 0.8rem;
       }
 
       .board-grid {
@@ -503,10 +559,6 @@ interface BoardCardMeta {
         padding: 1rem;
       }
 
-      .member-modal {
-        width: min(430px, 100%);
-      }
-
       .modal-head {
         display: flex;
         justify-content: space-between;
@@ -526,6 +578,11 @@ interface BoardCardMeta {
         .member-row {
           grid-template-columns: 1fr;
           justify-items: start;
+        }
+
+        .members-drawer {
+          width: 100%;
+          border-radius: 0;
         }
       }
     `
@@ -578,9 +635,10 @@ export class WorkspaceDetailComponent implements OnInit {
 
   showUpdateModal = false;
   showBoardModal = false;
-  showMemberModal = false;
+  showMembersPanel = false;
   openingBoardId: number | null = null;
   loading = false;
+  addingMember = false;
   loadingMembers = false;
   removingMemberUserId: number | null = null;
   error = '';
@@ -722,18 +780,13 @@ export class WorkspaceDetailComponent implements OnInit {
     this.openingBoardId = boardId;
   }
 
-  openMemberModal(): void {
-    if (!this.canManageWorkspace) {
-      this.notifyPermissionDenied();
-      return;
-    }
-
-    this.error = '';
-    this.showMemberModal = true;
+  openMembersPanel(): void {
+    this.showMembersPanel = true;
+    this.loadWorkspaceMembers();
   }
 
-  closeMemberModal(): void {
-    this.showMemberModal = false;
+  closeMembersPanel(): void {
+    this.showMembersPanel = false;
   }
 
   createBoard(): void {
@@ -793,19 +846,22 @@ export class WorkspaceDetailComponent implements OnInit {
       return;
     }
 
-    this.workspaceService.addMember({ workspaceId: this.workspaceId, userId }).subscribe({
-      next: () => {
-        this.notify.success('Member added');
-        this.memberForm.reset({ userId: null });
-        this.showMemberModal = false;
-        this.loadWorkspaceMembers();
-      },
-      error: (err) => {
-        const message = readErrorMessage(err);
-        this.error = message;
-        this.notify.error(message);
-      }
-    });
+    this.addingMember = true;
+    this.workspaceService
+      .addMember({ workspaceId: this.workspaceId, userId })
+      .pipe(finalize(() => (this.addingMember = false)))
+      .subscribe({
+        next: () => {
+          this.notify.success('Member added');
+          this.memberForm.reset({ userId: null });
+          this.loadWorkspaceMembers();
+        },
+        error: (err) => {
+          const message = readErrorMessage(err);
+          this.error = message;
+          this.notify.error(message);
+        }
+      });
   }
 
   metaFor(boardId: number): BoardCardMeta {
