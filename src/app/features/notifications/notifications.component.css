@@ -1,0 +1,126 @@
+.section-card {
+        padding: 18px;
+      }
+
+      .notification-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .section-title {
+        margin: 6px 0 4px;
+      }
+
+      .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .unread-pill {
+        display: inline-grid;
+        place-items: center;
+        border-radius: 999px;
+        padding: 0.24rem 0.58rem;
+        border: 1px solid #c7dcf7;
+        background: #edf5ff;
+        color: #1f4c80;
+        font-size: 0.74rem;
+        font-weight: 700;
+      }
+
+      .notification-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: 10px;
+      }
+
+      .notification-item {
+        border: 1px solid #dce8f7;
+        border-radius: 12px;
+        padding: 0.62rem 0.7rem;
+        background: #fafdff;
+        transition: background-color 120ms ease;
+        cursor: pointer;
+      }
+
+      .notification-item.unread {
+        border-color: #9ec5f3;
+        background: #edf5ff;
+      }
+
+      .notification-item:hover {
+        background: #eef6ff;
+      }
+
+      .notification-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      .notification-title {
+        margin: 0;
+        font-size: 0.88rem;
+        font-weight: 700;
+        color: #1f3f65;
+      }
+
+      .item-delete {
+        border: 1px solid #d4e5fa;
+        background: #ffffff;
+        color: #325a86;
+        border-radius: 8px;
+        padding: 0.24rem 0.48rem;
+        font-size: 0.72rem;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .notification-message {
+        margin: 0.3rem 0 0;
+        font-size: 0.82rem;
+        color: #405a79;
+        line-height: 1.4;
+      }
+
+      .notification-meta {
+        margin-top: 0.4rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      .notification-badge {
+        border-radius: 999px;
+        padding: 0.16rem 0.5rem;
+        border: 1px solid #9ec5f3;
+        background: #e7f1ff;
+        color: #1f4c80;
+        font-size: 0.7rem;
+        font-weight: 700;
+      }
+
+      .notification-badge.read {
+        border-color: #d3dbe7;
+        background: #f4f6f9;
+        color: #556987;
+      }
+
+      .notification-time {
+        color: #7288a4;
+        font-size: 0.74rem;
+      }
+
+      .notification-state {
+        padding: 0.6rem 0.1rem;
+        margin: 0;
+      }

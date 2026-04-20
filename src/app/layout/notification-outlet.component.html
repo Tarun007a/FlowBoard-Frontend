@@ -1,0 +1,5 @@
+<ng-container *ngIf="notificationService.uiNotification$ | async as notice">
+      <div class="app-toast" [class.success]="notice.type === 'success'" [class.error]="notice.type === 'error'" [class.info]="notice.type === 'info'">
+        {{ notice.message }}
+      </div>
+    </ng-container>

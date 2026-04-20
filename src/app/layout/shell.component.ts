@@ -15,506 +15,8 @@ import { SubscriptionService } from '../core/services/subscription.service';
   selector: 'app-shell',
   standalone: true,
   imports: [CommonModule, RouterLink, RouterLinkActive, RouterOutlet],
-  template: `
-    <div class="app-shell">
-      <header class="top-nav">
-        <div class="top-nav-inner">
-          <a class="brand" routerLink="/workspaces">
-            <span class="brand-mark">F</span>
-            <span class="brand-name">FlowBoard</span>
-          </a>
-
-          <nav class="top-links">
-            <a routerLink="/workspaces" routerLinkActive="active">Workspaces</a>
-            <a routerLink="/subscription/plans" routerLinkActive="active">Subscription</a>
-            <a routerLink="/subscription/my" routerLinkActive="active">My Plan</a>
-          </nav>
-
-          <div class="top-actions" *ngIf="session">
-            <div class="notification-wrapper" #notificationWrapper>
-              <button
-                type="button"
-                class="icon-button"
-                (click)="toggleNotificationsPanel($event)"
-                [attr.aria-expanded]="showNotificationsPanel"
-                aria-label="Open notifications">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
-                  <path d="M13.73 21a2 2 0 01-3.46 0" />
-                </svg>
-                <span class="count-pill" *ngIf="unreadCount > 0">{{ unreadCount }}</span>
-              </button>
-
-              <section class="notification-panel" *ngIf="showNotificationsPanel" (click)="$event.stopPropagation()">
-                <header class="notification-head">
-                  <h3>Notifications</h3>
-                  <span class="panel-unread" *ngIf="unreadCount > 0">{{ unreadCount }} unread</span>
-                </header>
-
-                <div class="notification-tools">
-                  <button type="button" class="panel-tool" (click)="markAllNotificationsAsRead()" [disabled]="notificationsLoading || panelActionLoading || unreadCount <= 0">
-                    Mark all read
-                  </button>
-                  <button type="button" class="panel-tool" (click)="clearReadNotifications()" [disabled]="notificationsLoading || panelActionLoading || !notifications.length">
-                    Clear read
-                  </button>
-                </div>
-
-                <div class="notification-state muted" *ngIf="notificationsLoading">Loading notifications...</div>
-                <p class="error notification-state" *ngIf="!notificationsLoading && notificationsError">{{ notificationsError }}</p>
-
-                <ul class="notification-list" *ngIf="!notificationsLoading && !notificationsError && notifications.length">
-                  <li
-                    class="notification-item"
-                    *ngFor="let item of notifications"
-                    [class.unread]="!item.isRead"
-                    (click)="onNotificationClick(item)">
-                    <div class="notification-item-head">
-                      <p class="notification-title">{{ item.title || 'Notification' }}</p>
-                      <button
-                        type="button"
-                        class="item-delete"
-                        (click)="deleteNotificationFromPanel(item.notificationId, $event)"
-                        [disabled]="panelActionLoading"
-                        aria-label="Delete notification">
-                        Delete
-                      </button>
-                    </div>
-                    <p class="notification-message">{{ item.message }}</p>
-                    <time class="notification-time">{{ formatNotificationDate(item.createdAt) }}</time>
-                  </li>
-                </ul>
-
-                <div class="notification-state muted" *ngIf="!notificationsLoading && !notificationsError && !notifications.length">
-                  No notifications yet
-                </div>
-              </section>
-            </div>
-
-            <div class="profile-wrapper" #profileWrapper>
-              <button
-                type="button"
-                class="profile-chip profile-button"
-                (click)="toggleProfileMenu($event)"
-                [attr.aria-expanded]="showProfileMenu"
-                aria-label="Open profile menu"
-                title="Open profile menu">
-                <span class="profile-avatar">{{ avatarSeed }}</span>
-                <span class="profile-meta">
-                  <strong class="profile-name">{{ displayName }}</strong>
-                  <span class="profile-email">{{ profileEmail }}</span>
-                </span>
-              </button>
-
-              <section class="profile-menu" *ngIf="showProfileMenu" (click)="$event.stopPropagation()">
-                <button type="button" class="profile-menu-item" (click)="openMyProfile()">My Profile</button>
-                <button type="button" class="profile-menu-item danger" (click)="logout()">Logout</button>
-              </section>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <div class="page-frame">
-        <main class="content-panel">
-          <router-outlet />
-        </main>
-      </div>
-
-      <div class="route-loading-overlay" *ngIf="routeLoading" aria-live="polite" aria-label="Loading next page">
-        <div class="route-spinner"></div>
-      </div>
-    </div>
-  `,
-  styles: [
-    `
-      @media (max-width: 960px) {
-        .top-nav-inner {
-          padding: 0.7rem 1rem;
-        }
-        .top-nav-inner,
-        .top-links,
-        .top-actions {
-          flex-wrap: wrap;
-        }
-        .top-actions {
-          width: 100%;
-          justify-content: flex-end;
-        }
-        .profile-email {
-          max-width: 160px;
-        }
-      }
-
-      .top-nav {
-        position: sticky;
-        top: 0;
-        z-index: 50;
-        border-bottom: 1px solid #c7dbf3;
-        background: linear-gradient(120deg, #1f78d8, #4ea2ef);
-        backdrop-filter: blur(8px);
-      }
-
-      .top-nav-inner {
-        width: min(1320px, calc(100% - 24px));
-        margin: 0 auto;
-        min-height: 64px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 0.85rem;
-      }
-
-      .brand {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.55rem;
-        color: #ffffff;
-      }
-
-      .brand-mark {
-        width: 34px;
-        height: 34px;
-        border-radius: 10px;
-        display: grid;
-        place-items: center;
-        background: rgba(255, 255, 255, 0.22);
-        font-weight: 800;
-      }
-
-      .brand-name {
-        font-family: 'Sora', 'Space Grotesk', 'Segoe UI', sans-serif;
-        font-size: 1.1rem;
-        letter-spacing: 0.01em;
-        font-weight: 700;
-      }
-
-      .top-links {
-        display: flex;
-        gap: 0.4rem;
-      }
-
-      .top-links a {
-        color: rgba(255, 255, 255, 0.82);
-        padding: 0.45rem 0.7rem;
-        border-radius: 10px;
-        font-weight: 600;
-      }
-
-      .top-links a.active {
-        color: #ffffff;
-        background: rgba(255, 255, 255, 0.18);
-      }
-
-      .top-actions {
-        display: flex;
-        align-items: center;
-        gap: 0.55rem;
-      }
-
-      .profile-wrapper {
-        position: relative;
-      }
-
-      .notification-wrapper {
-        position: relative;
-      }
-
-      .icon-button {
-        border: 0;
-        width: 40px;
-        height: 40px;
-        border-radius: 10px;
-        background: rgba(255, 255, 255, 0.2);
-        color: #ffffff;
-        display: grid;
-        place-items: center;
-        position: relative;
-        cursor: pointer;
-      }
-
-      .icon-button:hover {
-        background: rgba(255, 255, 255, 0.3);
-      }
-
-      .icon-button svg {
-        width: 19px;
-        height: 19px;
-      }
-
-      .count-pill {
-        position: absolute;
-        top: -4px;
-        right: -4px;
-        min-width: 18px;
-        height: 18px;
-        border-radius: 999px;
-        display: inline-grid;
-        place-items: center;
-        padding: 0 4px;
-        background: #e9f2ff;
-        color: #0f4b8e;
-        font-size: 0.68rem;
-        font-weight: 800;
-      }
-
-      .notification-panel {
-        position: absolute;
-        top: calc(100% + 10px);
-        right: 0;
-        width: min(360px, calc(100vw - 24px));
-        max-height: min(68vh, 520px);
-        overflow-y: auto;
-        border-radius: 14px;
-        border: 1px solid #cfdff4;
-        background: #ffffff;
-        box-shadow: 0 18px 35px rgba(30, 74, 135, 0.2);
-        padding: 0.72rem;
-        color: #1d2a3a;
-        animation: panelIn 140ms ease;
-        z-index: 70;
-      }
-
-      .notification-head {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 0.5rem;
-        padding: 0.2rem 0.1rem 0.55rem;
-      }
-
-      .notification-head h3 {
-        margin: 0;
-        font-size: 0.96rem;
-        color: #1f3c5f;
-      }
-
-      .panel-unread {
-        border-radius: 999px;
-        padding: 0.16rem 0.48rem;
-        border: 1px solid #c7dcf7;
-        background: #edf5ff;
-        color: #315985;
-        font-size: 0.72rem;
-        font-weight: 700;
-      }
-
-      .notification-tools {
-        display: flex;
-        gap: 8px;
-        padding: 0.1rem 0.1rem 0.52rem;
-      }
-
-      .panel-tool {
-        border: 1px solid #c9dbf4;
-        background: #edf5ff;
-        color: #315985;
-        border-radius: 8px;
-        padding: 0.3rem 0.55rem;
-        font-size: 0.76rem;
-        font-weight: 700;
-        cursor: pointer;
-      }
-
-      .panel-tool:hover {
-        background: #e2efff;
-      }
-
-      .panel-tool:disabled {
-        cursor: not-allowed;
-        opacity: 0.6;
-      }
-
-      .notification-list {
-        list-style: none;
-        margin: 0;
-        padding: 0;
-        display: grid;
-        gap: 0.45rem;
-      }
-
-      .notification-item {
-        border: 1px solid #dce8f7;
-        border-radius: 12px;
-        padding: 0.55rem 0.62rem;
-        cursor: pointer;
-        background: #fafdff;
-      }
-
-      .notification-item.unread {
-        border-color: #9ec5f3;
-        background: #edf5ff;
-      }
-
-      .notification-item:hover {
-        background: #eef6ff;
-      }
-
-      .notification-item-head {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px;
-      }
-
-      .notification-title {
-        margin: 0;
-        font-size: 0.82rem;
-        font-weight: 700;
-        color: #1f3f65;
-      }
-
-      .item-delete {
-        border: 1px solid #d4e5fa;
-        background: #ffffff;
-        color: #325a86;
-        border-radius: 8px;
-        padding: 0.18rem 0.42rem;
-        font-size: 0.7rem;
-        font-weight: 700;
-        cursor: pointer;
-      }
-
-      .notification-message {
-        margin: 0.24rem 0 0;
-        font-size: 0.8rem;
-        color: #405a79;
-        line-height: 1.38;
-      }
-
-      .notification-time {
-        display: block;
-        margin-top: 0.34rem;
-        color: #7288a4;
-        font-size: 0.74rem;
-      }
-
-      .notification-state {
-        padding: 0.62rem 0.28rem;
-        margin: 0;
-      }
-
-      @keyframes panelIn {
-        from {
-          opacity: 0;
-          transform: translateY(4px);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      }
-
-      .profile-chip {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.45rem;
-        max-width: 280px;
-        border: 1px solid rgba(255, 255, 255, 0.24);
-        background: rgba(255, 255, 255, 0.12);
-        border-radius: 999px;
-        padding: 0.24rem 0.65rem 0.24rem 0.28rem;
-        color: #ffffff;
-      }
-
-      .profile-button {
-        border: 0;
-        cursor: pointer;
-        text-align: left;
-      }
-
-      .profile-avatar {
-        width: 26px;
-        height: 26px;
-        border-radius: 999px;
-        display: grid;
-        place-items: center;
-        background: #d9ecff;
-        color: #0e4e91;
-        font-weight: 800;
-        font-size: 0.75rem;
-      }
-
-      .profile-email {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        font-size: 0.72rem;
-        opacity: 0.92;
-      }
-
-      .profile-meta {
-        display: grid;
-        min-width: 0;
-      }
-
-      .profile-menu {
-        position: absolute;
-        top: calc(100% + 10px);
-        right: 0;
-        min-width: 190px;
-        display: grid;
-        padding: 6px;
-        border-radius: 12px;
-        border: 1px solid #d1e1f4;
-        background: #ffffff;
-      }
-
-      .profile-menu-item {
-        border: 0;
-        border-radius: 8px;
-        background: #ffffff;
-        color: #1f3c5f;
-        text-align: left;
-        font-size: 0.82rem;
-        font-weight: 600;
-        padding: 0.48rem 0.56rem;
-        cursor: pointer;
-      }
-
-      .profile-menu-item.danger {
-        color: #a1261a;
-      }
-
-      .page-frame {
-        width: min(1320px, calc(100% - 24px));
-        margin: 0 auto;
-        padding: 16px 0 24px;
-      }
-
-      .content-panel {
-        min-width: 0;
-      }
-
-      .route-loading-overlay {
-        position: fixed;
-        inset: 0;
-        z-index: 120;
-        background: rgba(232, 242, 255, 0.46);
-        display: grid;
-        place-items: center;
-        backdrop-filter: blur(1px);
-      }
-
-      .route-spinner {
-        width: 44px;
-        height: 44px;
-        border-radius: 999px;
-        border: 4px solid #cde2fb;
-        border-top-color: #2b7edb;
-        animation: routeSpin 700ms linear infinite;
-      }
-
-      @keyframes routeSpin {
-        from {
-          transform: rotate(0deg);
-        }
-        to {
-          transform: rotate(360deg);
-        }
-      }
-    `
-  ]
+  templateUrl: './shell.component.html',
+  styleUrl: './shell.component.css'
 })
 export class ShellComponent implements OnInit {
   private readonly auth = inject(AuthService);
@@ -525,7 +27,10 @@ export class ShellComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly zone = inject(NgZone);
+  // destroyRef auto-cleans up subscriptions when this component is destroyed
   private readonly destroyRef = inject(DestroyRef);
+
+  // @ViewChild gives us a direct reference to a DOM element marked with #name in the template
   @ViewChild('notificationWrapper') private notificationWrapper?: ElementRef<HTMLElement>;
   @ViewChild('profileWrapper') private profileWrapper?: ElementRef<HTMLElement>;
 
@@ -539,8 +44,11 @@ export class ShellComponent implements OnInit {
   notificationsError = '';
   panelActionLoading = false;
   routeLoading = false;
+
+  // Tracks which user's notifications are currently loaded (to avoid re-fetching unnecessarily)
   private notificationsLoadedForUserId: number | null = null;
 
+  // Computed display values for the profile chip
   get displayName(): string {
     return this.profile?.fullName?.trim() || this.session?.email || 'My Profile';
   }
@@ -549,6 +57,7 @@ export class ShellComponent implements OnInit {
     return this.profile?.email?.trim() || this.session?.email || '';
   }
 
+  // The first letter of the user's name, used as an avatar
   get avatarSeed(): string {
     const seed = this.profile?.fullName?.trim() || this.profileEmail || '';
     return seed.charAt(0).toUpperCase() || 'U';
@@ -557,50 +66,46 @@ export class ShellComponent implements OnInit {
   ngOnInit(): void {
     this.authStore.restore();
 
+    // Watch for session changes (login/logout) and update the UI accordingly
     this.authStore.session$
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((session) => this.onSessionChanged(session));
 
+    // Show a loading spinner during route navigation
     this.router.events
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((event) => this.handleRouterEvent(event as RouterEvent));
 
+    // Keep the profile chip up to date
     this.profileState.profile$
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((profile) => {
-        this.profile = profile;
-      });
+      .subscribe((profile) => { this.profile = profile; });
 
+    // Poll for new notifications every 45 seconds
     interval(45000)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {
-        if (!this.session?.userId) {
-          return;
-        }
-
+        if (!this.session?.userId) return;
         this.refreshNotifications();
-        if (this.showNotificationsPanel) {
-          this.loadNotifications(true);
-        }
+        if (this.showNotificationsPanel) this.loadNotifications(true);
       });
   }
 
+  // @HostListener listens to events on the document (not just this component's element)
+  // Pressing Escape closes any open panels
   @HostListener('document:keydown.escape')
   onEscapeKey(): void {
     this.closeNotificationsPanel();
     this.closeProfileMenu();
   }
 
+  // Clicking anywhere outside the notification panel closes it
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
-    if (!this.showNotificationsPanel) {
-      return;
-    }
+    if (!this.showNotificationsPanel) return;
 
     const target = event.target as Node | null;
-    if (!target) {
-      return;
-    }
+    if (!target) return;
 
     if (!this.notificationWrapper?.nativeElement.contains(target)) {
       this.closeNotificationsPanel();
@@ -614,55 +119,43 @@ export class ShellComponent implements OnInit {
   toggleNotificationsPanel(event: MouseEvent): void {
     event.stopPropagation();
     this.showNotificationsPanel = !this.showNotificationsPanel;
-
     if (this.showNotificationsPanel) {
       this.loadNotifications();
       this.refreshNotifications();
     }
   }
 
-  closeNotificationsPanel(): void {
-    this.showNotificationsPanel = false;
-  }
+  closeNotificationsPanel(): void { this.showNotificationsPanel = false; }
 
   toggleProfileMenu(event: MouseEvent): void {
     event.stopPropagation();
     this.showProfileMenu = !this.showProfileMenu;
   }
 
-  closeProfileMenu(): void {
-    this.showProfileMenu = false;
-  }
+  closeProfileMenu(): void { this.showProfileMenu = false; }
 
   openMyProfile(): void {
     this.closeProfileMenu();
     this.router.navigate(['/profile']);
   }
 
+  // Mark a single notification as read when clicked
   onNotificationClick(notification: NotificationResponse): void {
-    if (notification.isRead) {
-      return;
-    }
+    if (notification.isRead) return;
 
     this.notificationService.markAsRead(notification.notificationId).subscribe({
       next: () => {
         this.notifications = this.notifications.map((item) =>
-          item.notificationId === notification.notificationId
-            ? { ...item, isRead: true }
-            : item
+          item.notificationId === notification.notificationId ? { ...item, isRead: true } : item
         );
         this.refreshNotifications();
       },
-      error: () => {
-        // Keep panel interaction non-blocking if mark-read fails.
-      }
+      error: () => { /* Keep panel working even if mark-read fails */ }
     });
   }
 
   markAllNotificationsAsRead(): void {
-    if (this.panelActionLoading || this.unreadCount <= 0) {
-      return;
-    }
+    if (this.panelActionLoading || this.unreadCount <= 0) return;
 
     this.panelActionLoading = true;
     this.notificationService.markAllAsRead().subscribe({
@@ -671,16 +164,12 @@ export class ShellComponent implements OnInit {
         this.unreadCount = 0;
         this.panelActionLoading = false;
       },
-      error: () => {
-        this.panelActionLoading = false;
-      }
+      error: () => { this.panelActionLoading = false; }
     });
   }
 
   clearReadNotifications(): void {
-    if (this.panelActionLoading || !this.notifications.length) {
-      return;
-    }
+    if (this.panelActionLoading || !this.notifications.length) return;
 
     this.panelActionLoading = true;
     this.notificationService.clearReadNotifications().subscribe({
@@ -688,18 +177,14 @@ export class ShellComponent implements OnInit {
         this.notifications = this.notifications.filter((item) => !item.isRead);
         this.panelActionLoading = false;
       },
-      error: () => {
-        this.panelActionLoading = false;
-      }
+      error: () => { this.panelActionLoading = false; }
     });
   }
 
   deleteNotificationFromPanel(notificationId: number, event: MouseEvent): void {
+    // Stop the click from also triggering onNotificationClick()
     event.stopPropagation();
-
-    if (this.panelActionLoading) {
-      return;
-    }
+    if (this.panelActionLoading) return;
 
     this.panelActionLoading = true;
     const target = this.notifications.find((item) => item.notificationId === notificationId) ?? null;
@@ -707,50 +192,42 @@ export class ShellComponent implements OnInit {
     this.notificationService.deleteNotification(notificationId).subscribe({
       next: () => {
         this.notifications = this.notifications.filter((item) => item.notificationId !== notificationId);
-        if (target && !target.isRead) {
-          this.unreadCount = Math.max(0, this.unreadCount - 1);
-        }
+        // Decrease unread count if the deleted notification was unread
+        if (target && !target.isRead) this.unreadCount = Math.max(0, this.unreadCount - 1);
         this.panelActionLoading = false;
       },
-      error: () => {
-        this.panelActionLoading = false;
-      }
+      error: () => { this.panelActionLoading = false; }
     });
   }
 
   formatNotificationDate(value: string): string {
     const date = new Date(value);
-    if (Number.isNaN(date.getTime())) {
-      return value;
-    }
-
+    if (Number.isNaN(date.getTime())) return value;
     return date.toLocaleString();
   }
 
   refreshNotifications(): void {
-    if (!this.session?.userId) {
-      this.unreadCount = 0;
-      return;
-    }
-
+    if (!this.session?.userId) { this.unreadCount = 0; return; }
     this.notificationService.getUnreadCount().subscribe({
       next: (count) => (this.unreadCount = count),
       error: () => (this.unreadCount = 0)
     });
   }
 
+  logout(): void {
+    this.closeProfileMenu();
+    this.profileState.clear();
+    this.subscriptionService.clearCurrentSubscription();
+    this.auth.logout();
+    this.router.navigate(['/login']);
+  }
+
   private loadNotifications(force = false): void {
     const userId = this.session?.userId;
-    if (!userId) {
-      this.notifications = [];
-      this.notificationsError = '';
-      this.notificationsLoading = false;
-      return;
-    }
+    if (!userId) { this.notifications = []; this.notificationsError = ''; this.notificationsLoading = false; return; }
 
-    if (!force && this.notificationsLoadedForUserId === userId) {
-      return;
-    }
+    // Skip re-loading if we already have this user's notifications (unless forced)
+    if (!force && this.notificationsLoadedForUserId === userId) return;
 
     this.notificationsLoading = true;
     this.notificationsError = '';
@@ -769,22 +246,15 @@ export class ShellComponent implements OnInit {
     });
   }
 
-  logout(): void {
-    this.closeProfileMenu();
-    this.profileState.clear();
-    this.subscriptionService.clearCurrentSubscription();
-    this.auth.logout();
-    this.router.navigate(['/login']);
-  }
-
+  // Handles route navigation events to show/hide the loading spinner
   private handleRouterEvent(event: RouterEvent): void {
+    // zone.run() ensures Angular's change detection picks up the update
     this.zone.run(() => {
       if (event instanceof NavigationStart) {
         this.routeLoading = true;
         this.cdr.detectChanges();
         return;
       }
-
       if (event instanceof NavigationEnd || event instanceof NavigationCancel || event instanceof NavigationError) {
         this.routeLoading = false;
         this.cdr.detectChanges();
@@ -792,11 +262,13 @@ export class ShellComponent implements OnInit {
     });
   }
 
+  // Called whenever the logged-in session changes (login or logout)
   private onSessionChanged(session: AuthSession | null): void {
     const previousUserId = this.session?.userId ?? null;
     this.session = session;
 
     if (!session) {
+      // Reset everything on logout
       this.unreadCount = 0;
       this.notifications = [];
       this.notificationsError = '';
@@ -806,22 +278,13 @@ export class ShellComponent implements OnInit {
       return;
     }
 
-    const shouldReloadUserState =
-      previousUserId !== session.userId || this.profile?.userId !== session.userId;
-
-    if (!shouldReloadUserState) {
-      return;
-    }
+    // Reload user-specific data when switching accounts
+    const shouldReload = previousUserId !== session.userId || this.profile?.userId !== session.userId;
+    if (!shouldReload) return;
 
     this.notificationsLoadedForUserId = null;
-    this.profileState.loadProfile(true).subscribe({
-      error: () => {
-        // Keep navbar usable even if profile fetch fails.
-      }
-    });
+    this.profileState.loadProfile(true).subscribe({ error: () => {} });
     this.refreshNotifications();
-    if (this.showNotificationsPanel) {
-      this.loadNotifications(true);
-    }
+    if (this.showNotificationsPanel) this.loadNotifications(true);
   }
 }

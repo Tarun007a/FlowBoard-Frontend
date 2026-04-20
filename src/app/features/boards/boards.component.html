@@ -1,0 +1,82 @@
+<div class="stack page-stack">
+  <!-- Page header -->
+  <section class="hero panel">
+    <div class="badge">Step 3</div>
+    <h1>Boards in workspace #{{ workspaceId }}</h1>
+    <p class="muted">Create and manage boards inside this workspace.</p>
+    <div class="actions">
+      <a class="button secondary" [routerLink]="['/workspace', workspaceId]">Back to members</a>
+    </div>
+  </section>
+
+  <!-- Create board form -->
+  <section class="panel section-card stack">
+    <h2 class="section-title">Create board</h2>
+    <form class="stack" [formGroup]="form" (ngSubmit)="createBoard()">
+      <div class="field">
+        <label>Board name</label>
+        <input type="text" formControlName="name" placeholder="Product backlog" />
+      </div>
+      <div class="field">
+        <label>Description</label>
+        <textarea formControlName="description" placeholder="Track roadmap items for the quarter"></textarea>
+      </div>
+      <div class="grid cols-2">
+        <div class="field">
+          <label>Visibility</label>
+          <select formControlName="visibility">
+            <option value="PUBLIC">PUBLIC</option>
+            <option value="PRIVATE">PRIVATE</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Background</label>
+          <input type="text" formControlName="background" placeholder="#0f4c81" />
+        </div>
+      </div>
+      <div class="actions">
+        <button class="button accent" type="submit" [disabled]="form.invalid">Create board</button>
+        <button class="button secondary" type="button" (click)="form.reset(defaultForm)">Reset</button>
+      </div>
+    </form>
+    <p class="error" *ngIf="error">{{ error }}</p>
+    <p class="success" *ngIf="message">{{ message }}</p>
+  </section>
+
+  <!-- Board list -->
+  <section class="panel section-card stack">
+    <div class="actions-between">
+      <h2 class="section-title">Board list</h2>
+      <button class="button secondary" type="button" (click)="loadBoards()">Refresh</button>
+    </div>
+
+    <!-- Empty state -->
+    <div class="empty-state" *ngIf="!boards.length">
+      <div class="badge">No boards yet</div>
+      <p class="muted">Create the first board using the form above.</p>
+    </div>
+
+    <!-- Board cards grid -->
+    <div class="board-grid" *ngIf="boards.length">
+      <article class="board-item" *ngFor="let board of boards">
+        <div class="item-top">
+          <div>
+            <h3>{{ board.name }}</h3>
+            <p class="muted">{{ board.description }}</p>
+          </div>
+          <span class="chip">{{ board.visibility }}</span>
+        </div>
+        <div class="chip-row">
+          <span class="chip">#{{ board.boardId }}</span>
+          <span class="chip">{{ board.isClosed ? 'Closed' : 'Open' }}</span>
+        </div>
+        <div class="actions">
+          <a class="button accent" [routerLink]="['/board', board.boardId]">Open board</a>
+          <button class="button secondary" type="button" (click)="toggleBoard(board)">
+            {{ board.isClosed ? 'Open' : 'Close' }}
+          </button>
+        </div>
+      </article>
+    </div>
+  </section>
+</div>

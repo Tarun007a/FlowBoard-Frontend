@@ -1,0 +1,110 @@
+<div class="stack">
+      <section class="hero">
+        <div class="badge">User Management</div>
+        <h1>Inspect and update users</h1>
+        <p class="muted">The backend exposes direct lookup, role and name search, bulk fetch, profile update, avatar change, and deletion endpoints.</p>
+      </section>
+
+      <section class="grid cols-2">
+        <div class="panel section-card stack">
+          <h2 class="section-title">Lookup</h2>
+          <div class="grid cols-2">
+            <div class="field">
+              <label>Email</label>
+              <input type="email" [formControl]="lookupEmail" />
+            </div>
+            <div class="field">
+              <label>User ID</label>
+              <input type="number" [formControl]="lookupId" />
+            </div>
+            <div class="field">
+              <label>Full name</label>
+              <input type="text" [formControl]="searchName" />
+            </div>
+            <div class="field">
+              <label>Role</label>
+              <input type="text" [formControl]="searchRole" />
+            </div>
+            <div class="field">
+              <label>Bulk email list</label>
+              <textarea [formControl]="bulkEmails"></textarea>
+            </div>
+            <div class="field">
+              <label>Bulk ids</label>
+              <textarea [formControl]="bulkIds"></textarea>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button class="button secondary" type="button" (click)="fetchByEmail()">By email</button>
+            <button class="button secondary" type="button" (click)="fetchById()">By id</button>
+            <button class="button secondary" type="button" (click)="searchUsers()">Search</button>
+            <button class="button secondary" type="button" (click)="fetchBulk()">Bulk ids</button>
+            <button class="button secondary" type="button" (click)="resolveEmails()">Resolve ids from emails</button>
+          </div>
+        </div>
+
+        <div class="panel section-card stack">
+          <h2 class="section-title">Profile Update</h2>
+          <form class="stack" [formGroup]="form" (ngSubmit)="updateUser()">
+            <div class="grid cols-2">
+              <div class="field">
+                <label>User ID</label>
+                <input type="number" formControlName="userId" />
+              </div>
+              <div class="field">
+                <label>Full name</label>
+                <input type="text" formControlName="fullName" />
+              </div>
+              <div class="field">
+                <label>Avatar URL</label>
+                <input type="text" formControlName="avatarUrl" />
+              </div>
+            </div>
+            <div class="actions">
+              <button class="button accent" type="submit" [disabled]="loading || form.invalid">Save profile</button>
+              <button class="button danger" type="button" (click)="deleteUser()">Delete user</button>
+              <button class="button secondary" type="button" (click)="updateAvatar()">Update avatar only</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <section class="panel section-card stack">
+        <div class="actions-between">
+          <h2 class="section-title">Results</h2>
+          <button class="button secondary" type="button" (click)="clearResults()">Clear</button>
+        </div>
+
+        <p class="error" *ngIf="error">{{ error }}</p>
+        <p class="success" *ngIf="message">{{ message }}</p>
+
+        <div class="surface result-box" *ngIf="singleUser">
+          <div><span class="muted">Name</span><div>{{ singleUser.fullName }}</div></div>
+          <div><span class="muted">Email</span><div>{{ singleUser.email }}</div></div>
+          <div><span class="muted">User ID</span><div>{{ singleUser.userId }}</div></div>
+          <div><span class="muted">Avatar</span><div>{{ singleUser.avatarUrl || '-' }}</div></div>
+        </div>
+
+        <table class="table" *ngIf="users.length">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Avatar</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let user of users">
+              <td>{{ user.userId }}</td>
+              <td>{{ user.fullName }}</td>
+              <td>{{ user.email }}</td>
+              <td>{{ user.avatarUrl || '-' }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <pre class="surface json-box" *ngIf="jsonResult">{{ jsonResult }}</pre>
+      </section>
+    </div>

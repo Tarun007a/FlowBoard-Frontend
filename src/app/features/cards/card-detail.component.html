@@ -1,0 +1,134 @@
+<!-- Dark overlay - clicking it closes the drawer -->
+<div class="detail-overlay" (click)="close()">
+  <!-- Drawer panel - clicking inside does NOT close it -->
+  <aside class="detail-drawer panel" (click)="$event.stopPropagation()">
+
+    <!-- Header with title and action buttons -->
+    <header class="detail-head">
+      <div>
+        <div class="badge">Card Detail</div>
+        <h2>{{ card.title }}</h2>
+      </div>
+      <div class="actions">
+        <button class="button secondary" type="button" (click)="requestEdit.emit(card)">Edit</button>
+        <button class="button secondary" type="button" (click)="close()">Close</button>
+      </div>
+    </header>
+
+    <!-- Card info section -->
+    <section class="detail-section stack">
+      <h3 class="section-title">Card Information</h3>
+      <div class="info-grid">
+        <article class="info-item">
+          <span class="info-label">Title</span>
+          <strong>{{ card.title }}</strong>
+        </article>
+        <article class="info-item">
+          <span class="info-label">Description</span>
+          <strong>{{ card.description || '-' }}</strong>
+        </article>
+        <article class="info-item">
+          <span class="info-label">Status</span>
+          <strong>{{ card.status || '-' }}</strong>
+        </article>
+        <article class="info-item">
+          <span class="info-label">Assignee</span>
+          <strong>{{ assigneeName || (card.assigneeId ? ('User ' + card.assigneeId) : '-') }}</strong>
+        </article>
+        <article class="info-item">
+          <span class="info-label">Due Date</span>
+          <strong>{{ formatDate(card.dueDate) }}</strong>
+        </article>
+      </div>
+    </section>
+
+    <!-- Attachments section -->
+    <section class="detail-section stack">
+      <div class="section-row">
+        <h3 class="section-title">Attachments</h3>
+        <div class="actions">
+          <!-- Hidden file input triggered by the visible button -->
+          <button class="button secondary" type="button" (click)="fileInput.click()">Upload Attachment</button>
+          <input #fileInput type="file" hidden (change)="onFileSelected($event)" />
+          <button class="button accent" type="button" [disabled]="!selectedFile || uploadingAttachment" (click)="uploadAttachment()">
+            {{ uploadingAttachment ? 'Uploading...' : 'Save Upload' }}
+          </button>
+        </div>
+      </div>
+
+      <p class="muted" *ngIf="selectedFile">Selected: {{ selectedFile.name }}</p>
+      <p class="error" *ngIf="attachmentError">{{ attachmentError }}</p>
+
+      <div class="empty-state" *ngIf="!attachments.length && !loadingAttachments">
+        <p class="muted">No attachments yet.</p>
+      </div>
+
+      <div class="attachment-list" *ngIf="attachments.length">
+        <article class="attachment-item" *ngFor="let item of attachments">
+          <div>
+            <strong>{{ item.fileName }}</strong>
+            <p class="muted">Uploaded {{ formatDate(item.uploadedAt) }}</p>
+          </div>
+          <div class="actions">
+            <a class="button secondary" [href]="item.fileUrl" target="_blank" rel="noreferrer">View</a>
+            <button class="button danger" type="button" *ngIf="canDeleteAttachment(item)" (click)="deleteAttachment(item)">Delete</button>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- Comments section -->
+    <section class="detail-section stack">
+      <h3 class="section-title">Comments</h3>
+
+      <form class="stack" [formGroup]="commentForm" (ngSubmit)="addComment()">
+        <div class="field">
+          <label for="commentBox">Write a comment...</label>
+          <textarea id="commentBox" formControlName="content" placeholder="Add details, updates, or blockers"></textarea>
+        </div>
+        <div class="actions">
+          <button class="button accent" type="submit" [disabled]="commentForm.invalid || postingComment">
+            {{ postingComment ? 'Posting...' : 'Post Comment' }}
+          </button>
+          <button class="button secondary" type="button" (click)="commentForm.reset({ content: '' })">Cancel</button>
+        </div>
+      </form>
+
+      <p class="error" *ngIf="commentError">{{ commentError }}</p>
+
+      <div class="empty-state" *ngIf="!comments.length && !loadingComments">
+        <p class="muted">No comments yet.</p>
+      </div>
+
+      <div class="comment-list" *ngIf="comments.length">
+        <article class="comment-item" *ngFor="let item of comments">
+          <header class="comment-head">
+            <strong>{{ commentAuthor(item.authorId) }}</strong>
+            <time>{{ formatDate(item.createdAt) }}</time>
+          </header>
+
+          <!-- Normal view: show comment text with edit/delete buttons -->
+          <div *ngIf="editingCommentId !== item.commentId; else editBox">
+            <p>{{ item.content }}</p>
+            <div class="actions" *ngIf="canManageComment(item)">
+              <button class="button secondary" type="button" (click)="startEditComment(item)">Edit</button>
+              <button class="button danger" type="button" (click)="deleteComment(item)">Delete</button>
+            </div>
+          </div>
+
+          <!-- Edit mode: show a textarea with save/cancel buttons -->
+          <ng-template #editBox>
+            <div class="field">
+              <textarea [value]="editContent" (input)="onEditContentChange($event)"></textarea>
+            </div>
+            <div class="actions">
+              <button class="button accent" type="button" (click)="saveEditComment(item)">Save</button>
+              <button class="button secondary" type="button" (click)="cancelEditComment()">Cancel</button>
+            </div>
+          </ng-template>
+        </article>
+      </div>
+    </section>
+
+  </aside>
+</div>

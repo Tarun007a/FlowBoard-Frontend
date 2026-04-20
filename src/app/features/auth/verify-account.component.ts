@@ -9,48 +9,8 @@ import { readErrorMessage } from '../../core/utils/error.utils';
   selector: 'app-verify-account-page',
   standalone: true,
   imports: [CommonModule, RouterLink],
-  template: `
-    <div class="page-frame auth-frame">
-      <section class="hero auth-hero">
-        <div class="badge">Account Verification</div>
-        <h1>Validating your token</h1>
-        <p class="muted">The backend verifies the token from the signup flow and returns a plain text status message.</p>
-      </section>
-
-      <section class="panel auth-panel stack">
-        <p class="error" *ngIf="error">{{ error }}</p>
-        <p class="success" *ngIf="success">{{ success }}</p>
-        <p class="muted" *ngIf="loading">Checking token...</p>
-        <div class="actions">
-          <a class="button accent" routerLink="/login">Go to login</a>
-        </div>
-      </section>
-    </div>
-  `,
-  styles: [
-    `
-      .auth-frame {
-        display: grid;
-        grid-template-columns: minmax(0, 1.2fr) minmax(320px, 460px);
-        gap: 18px;
-        align-items: center;
-        min-height: 100dvh;
-        padding-top: 40px;
-      }
-
-      .auth-hero,
-      .auth-panel {
-        padding: 28px;
-      }
-
-      @media (max-width: 960px) {
-        .auth-frame {
-          grid-template-columns: 1fr;
-          padding-top: 18px;
-        }
-      }
-    `
-  ]
+  templateUrl: './verify-account.component.html',
+  styleUrl: './verify-account.component.css'
 })
 export class VerifyAccountComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);

@@ -1,0 +1,176 @@
+<div class="workspace-page">
+  <!-- Page header with "Create Workspace" button -->
+  <section class="workspace-hero panel">
+    <div>
+      <div class="hero-badge">Workspace Hub</div>
+      <h1>Welcome back to FlowBoard</h1>
+      <p class="muted">Manage your workspaces from one clean view.</p>
+    </div>
+    <div class="hero-actions">
+      <button class="button accent" type="button" (click)="openCreateModal()">Create Workspace</button>
+    </div>
+  </section>
+
+  <p class="error" *ngIf="error">{{ error }}</p>
+
+  <div class="workspace-layout">
+    <!-- My workspaces (owned + joined) -->
+    <section class="workspace-section workspace-main panel">
+      <header class="section-head">
+        <div>
+          <h2>Workspaces</h2>
+          <p class="muted">Your owned and joined workspaces in one view</p>
+        </div>
+        <span class="section-count">{{ combinedWorkspaces.length }}</span>
+      </header>
+
+      <div class="workspace-grid" *ngIf="combinedWorkspaces.length; else noWorkspaces">
+        <article
+          class="workspace-card"
+          *ngFor="let workspace of combinedWorkspaces; trackBy: trackByWorkspaceId"
+          [class.card-loading]="openingWorkspaceId === workspace.workspaceId"
+          [attr.aria-busy]="openingWorkspaceId === workspace.workspaceId"
+          [ngStyle]="{ 'background': workspaceGradient(workspace.workspaceId) }"
+          (click)="openWorkspace(workspace)">
+
+          <div class="card-top">
+            <span class="visibility-pill">{{ workspace.visibility }}</span>
+            <!-- Star icon shown only on workspaces you own -->
+            <div class="owner-star" *ngIf="isOwner(workspace)" title="My Workspace" aria-label="My Workspace">
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M12 2.75l2.85 5.78 6.37.93-4.61 4.49 1.09 6.35L12 17.3 6.3 20.3l1.09-6.35-4.61-4.49 6.37-.93L12 2.75z" />
+              </svg>
+            </div>
+          </div>
+
+          <header class="card-head">
+            <h3>{{ workspace.name }}</h3>
+          </header>
+
+          <p class="card-description">{{ workspace.description || 'No description provided.' }}</p>
+          <p class="card-role">{{ isOwner(workspace) ? 'Owner' : 'Member' }}</p>
+
+          <footer class="card-stats">
+            <div>
+              <span class="label">Members</span>
+              <strong>{{ asCount(metaFor(workspace.workspaceId).memberCount) }}</strong>
+            </div>
+            <div>
+              <span class="label">Boards</span>
+              <strong>{{ asCount(metaFor(workspace.workspaceId).boardCount) }}</strong>
+            </div>
+          </footer>
+        </article>
+      </div>
+
+      <ng-template #noWorkspaces>
+        <section class="empty-workspaces" *ngIf="!loadingSections">
+          <img src="images/workspaces-empty-state.svg" alt="No workspaces illustration" />
+          <div>
+            <h3>No workspaces yet</h3>
+            <p class="muted">Create your first workspace or ask your team to add you.</p>
+          </div>
+          <button class="button accent" type="button" (click)="openCreateModal()">Create Workspace</button>
+        </section>
+      </ng-template>
+    </section>
+
+    <!-- Public workspaces sidebar -->
+    <aside class="workspace-section workspace-sidebar panel" *ngIf="publicSectionEnabled">
+      <header class="section-head sidebar-head">
+        <div>
+          <h2>Public Workspaces</h2>
+          <p class="muted">Browse open workspaces you can access</p>
+        </div>
+      </header>
+
+      <div class="public-list" *ngIf="publicWorkspaces.length; else noPublic">
+        <article
+          class="public-card"
+          *ngFor="let workspace of publicWorkspaces; trackBy: trackByWorkspaceId"
+          [class.card-loading]="openingWorkspaceId === workspace.workspaceId"
+          [attr.aria-busy]="openingWorkspaceId === workspace.workspaceId"
+          [ngStyle]="{ 'background': workspaceGradient(workspace.workspaceId) }"
+          (click)="openWorkspace(workspace)">
+
+          <header>
+            <h3>{{ workspace.name }}</h3>
+            <span class="visibility-pill">{{ workspace.visibility }}</span>
+          </header>
+
+          <p>{{ workspace.description || 'No description provided.' }}</p>
+
+          <div class="public-meta">
+            <span>Members: {{ asCount(metaFor(workspace.workspaceId).memberCount) }}</span>
+          </div>
+
+          <!-- Join button only shown if you haven't already joined -->
+          <button
+            class="button secondary"
+            type="button"
+            *ngIf="canJoin(workspace)"
+            [disabled]="joiningWorkspaceId === workspace.workspaceId"
+            (click)="joinWorkspace(workspace, $event)">
+            {{ joiningWorkspaceId === workspace.workspaceId ? 'Joining...' : 'Join Workspace' }}
+          </button>
+        </article>
+      </div>
+
+      <ng-template #noPublic>
+        <div class="public-empty" *ngIf="!loadingSections">
+          <p class="muted">No public workspaces available</p>
+        </div>
+      </ng-template>
+    </aside>
+  </div>
+
+  <!-- Loading spinner area -->
+  <div class="empty-wrap panel" *ngIf="loadingSections">
+    <p class="muted">Loading workspaces...</p>
+  </div>
+</div>
+
+<!-- Create workspace modal (dialog) -->
+<div class="modal-overlay" *ngIf="showCreateModal" (click)="closeCreateModal()">
+  <!-- stopPropagation prevents clicks inside the modal from closing it -->
+  <section class="panel modal-card" (click)="$event.stopPropagation()">
+    <header class="modal-head">
+      <div>
+        <div class="hero-badge">Workspace</div>
+        <h2>Create workspace</h2>
+      </div>
+      <button class="button secondary" type="button" (click)="closeCreateModal()">Close</button>
+    </header>
+
+    <form class="stack" [formGroup]="form" (ngSubmit)="createWorkspace()">
+      <div class="field">
+        <label>Name</label>
+        <input type="text" formControlName="name" placeholder="Engineering Team" />
+      </div>
+      <div class="field">
+        <label>Description</label>
+        <textarea formControlName="description" placeholder="Roadmap, sprint planning, and delivery boards."></textarea>
+      </div>
+      <div class="grid cols-2">
+        <div class="field">
+          <label>Visibility</label>
+          <select formControlName="visibility">
+            <option value="PUBLIC">PUBLIC</option>
+            <option value="PRIVATE">PRIVATE</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Logo URL</label>
+          <input type="text" formControlName="logoUrl" placeholder="https://logo.example/workspace.png" />
+        </div>
+      </div>
+      <p class="error" *ngIf="createError">{{ createError }}</p>
+      <div class="actions">
+        <button class="button accent" type="submit" [disabled]="creatingWorkspace || form.invalid">
+          {{ creatingWorkspace ? 'Creating...' : 'Create Workspace' }}
+        </button>
+        <button class="button secondary" type="button" (click)="form.reset(defaultForm)">Reset</button>
+      </div>
+    </form>
+  </section>
+</div>

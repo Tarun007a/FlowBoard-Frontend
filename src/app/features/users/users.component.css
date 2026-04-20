@@ -1,0 +1,17 @@
+.section-card {
+        padding: 18px;
+      }
+
+      .actions-between {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .result-box,
+      .json-box {
+        padding: 14px;
+        white-space: pre-wrap;
+      }

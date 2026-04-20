@@ -1,0 +1,228 @@
+<div class="workspace-detail-page">
+
+  <!-- Workspace header banner -->
+  <section class="panel workspace-banner" *ngIf="workspace; else loadingWorkspace">
+    <div class="workspace-header-main">
+      <div class="workspace-chip">Workspace</div>
+      <h1>{{ workspace.name }}</h1>
+      <p class="muted">{{ workspace.description || 'No description provided.' }}</p>
+
+      <div class="workspace-meta">
+        <span class="meta-pill">Visibility: {{ workspace.visibility }}</span>
+        <span class="meta-pill">Members: {{ memberCount }}</span>
+        <span class="meta-pill owner-badge" *ngIf="workspace.ownerId === session?.userId">★ Owner</span>
+        <span class="meta-pill" *ngIf="workspace.ownerId === session?.userId">Role: Owner</span>
+        <span class="meta-pill" *ngIf="workspace.ownerId !== session?.userId">Role: Member</span>
+      </div>
+    </div>
+
+    <div class="banner-actions">
+      <button class="button accent" type="button" *ngIf="canManageWorkspace" (click)="openBoardModal()">Create Board</button>
+      <button class="button secondary" type="button" (click)="openMembersPanel()">Members</button>
+      <a class="button secondary" routerLink="/workspaces">Back</a>
+      <button class="button secondary" type="button" *ngIf="canManageWorkspace" (click)="openUpdateModal()">Update Workspace</button>
+      <button class="button danger" type="button" *ngIf="canManageWorkspace" (click)="deleteWorkspace()">Delete Workspace</button>
+    </div>
+  </section>
+
+  <!-- Boards grid -->
+  <section class="panel section-card boards-section">
+    <header class="section-head">
+      <h2>Boards</h2>
+      <p class="muted">Boards available in this workspace.</p>
+    </header>
+
+    <section class="board-grid" *ngIf="boards.length; else emptyBoards">
+      <a
+        class="board-card"
+        *ngFor="let board of boards"
+        [routerLink]="['/board', board.boardId]"
+        [class.card-loading]="openingBoardId === board.boardId"
+        [attr.aria-busy]="openingBoardId === board.boardId"
+        [ngStyle]="{ 'background': boardBackground(board) }"
+        (click)="markBoardOpening(board.boardId)">
+
+        <header class="board-head">
+          <h3>{{ board.name }}</h3>
+          <span class="board-pill">{{ board.isClosed ? 'Closed' : 'Open' }}</span>
+        </header>
+
+        <p class="board-text">{{ board.description || 'No description provided.' }}</p>
+
+        <footer class="board-footer">
+          <div>
+            <span class="label">Visibility</span>
+            <strong>{{ board.visibility }}</strong>
+          </div>
+          <div>
+            <span class="label">Members</span>
+            <strong>{{ asCount(metaFor(board.boardId).memberCount) }}</strong>
+          </div>
+        </footer>
+      </a>
+    </section>
+  </section>
+
+  <!-- Empty board state -->
+  <ng-template #emptyBoards>
+    <section class="panel empty-state-box" *ngIf="workspace">
+      <div class="workspace-chip">No Boards</div>
+      <h2>No boards yet. Create your first board.</h2>
+      <p class="muted">Create a board to start organizing lists and cards.</p>
+      <button class="button accent" type="button" *ngIf="canManageWorkspace" (click)="openBoardModal()">Create Board</button>
+    </section>
+  </ng-template>
+
+  <!-- Loading state while workspace data is being fetched -->
+  <ng-template #loadingWorkspace>
+    <section class="panel empty-state-box">
+      <div class="workspace-chip">Loading</div>
+      <h2>Fetching workspace</h2>
+      <p class="muted">Please wait while workspace details load.</p>
+    </section>
+  </ng-template>
+
+  <p class="error" *ngIf="error">{{ error }}</p>
+</div>
+
+<!-- Members drawer overlay (darkens the background) -->
+<div class="members-overlay" *ngIf="showMembersPanel" (click)="closeMembersPanel()"></div>
+
+<!-- Members slide-in drawer (slides in from the right) -->
+<aside class="panel members-drawer" [class.open]="showMembersPanel" [attr.aria-hidden]="!showMembersPanel">
+  <header class="drawer-head">
+    <div>
+      <div class="workspace-chip">Workspace Members</div>
+      <h2>Members ({{ memberCount }})</h2>
+      <p class="muted">Manage workspace access.</p>
+    </div>
+    <button class="button secondary" type="button" (click)="closeMembersPanel()">Close</button>
+  </header>
+
+  <!-- Add member form - only visible to workspace owners/admins -->
+  <form class="stack member-add-form" [formGroup]="memberForm" (ngSubmit)="addMember()" *ngIf="canManageWorkspace">
+    <div class="field">
+      <label>User ID</label>
+      <input type="number" formControlName="userId" placeholder="Enter user id" />
+    </div>
+    <div class="actions">
+      <button class="button accent" type="submit" [disabled]="memberForm.invalid || addingMember">
+        {{ addingMember ? 'Adding...' : 'Add Member' }}
+      </button>
+    </div>
+  </form>
+
+  <section class="member-list" *ngIf="workspaceMembers.length; else emptyMembersDrawer">
+    <article class="member-row" *ngFor="let member of workspaceMembers; trackBy: trackByMemberId">
+      <div class="member-main">
+        <strong>{{ memberDisplayName(member) }}</strong>
+        <span class="muted">{{ memberEmail(member) || 'Email unavailable' }}</span>
+      </div>
+
+      <span class="role-pill" [class.owner]="isOwnerMember(member)">
+        {{ memberRole(member) }}
+      </span>
+
+      <button
+        class="button danger"
+        type="button"
+        *ngIf="canRemoveMember(member)"
+        [disabled]="removingMemberUserId === member.userId"
+        (click)="removeMember(member)">
+        {{ removingMemberUserId === member.userId ? 'Removing...' : 'Remove' }}
+      </button>
+    </article>
+  </section>
+
+  <ng-template #emptyMembersDrawer>
+    <section class="members-empty">
+      <p class="muted" *ngIf="loadingMembers">Loading members...</p>
+      <p class="muted" *ngIf="!loadingMembers">No members found.</p>
+    </section>
+  </ng-template>
+</aside>
+
+<!-- Update workspace modal -->
+<div class="modal-overlay" *ngIf="showUpdateModal" (click)="closeUpdateModal()">
+  <section class="panel modal-card" (click)="$event.stopPropagation()">
+    <header class="modal-head">
+      <div>
+        <div class="workspace-chip">Workspace</div>
+        <h2>Update workspace</h2>
+      </div>
+      <button class="button secondary" type="button" (click)="closeUpdateModal()">Close</button>
+    </header>
+
+    <form class="stack" [formGroup]="workspaceForm" (ngSubmit)="updateWorkspace()">
+      <div class="field">
+        <label>Name</label>
+        <input type="text" formControlName="name" />
+      </div>
+      <div class="field">
+        <label>Description</label>
+        <textarea formControlName="description"></textarea>
+      </div>
+      <div class="grid cols-2">
+        <div class="field">
+          <label>Visibility</label>
+          <select formControlName="visibility">
+            <option value="PUBLIC">PUBLIC</option>
+            <option value="PRIVATE">PRIVATE</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Logo URL</label>
+          <input type="text" formControlName="logoUrl" />
+        </div>
+      </div>
+      <div class="actions">
+        <button class="button accent" type="submit" [disabled]="loading || workspaceForm.invalid">
+          {{ loading ? 'Updating...' : 'Update Workspace' }}
+        </button>
+      </div>
+    </form>
+  </section>
+</div>
+
+<!-- Create board modal -->
+<div class="modal-overlay" *ngIf="showBoardModal" (click)="closeBoardModal()">
+  <section class="panel modal-card" (click)="$event.stopPropagation()">
+    <header class="modal-head">
+      <div>
+        <div class="workspace-chip">Board</div>
+        <h2>Create board</h2>
+      </div>
+      <button class="button secondary" type="button" (click)="closeBoardModal()">Close</button>
+    </header>
+
+    <form class="stack" [formGroup]="boardForm" (ngSubmit)="createBoard()">
+      <div class="field">
+        <label>Board Name</label>
+        <input type="text" formControlName="name" placeholder="Product Roadmap" />
+      </div>
+      <div class="field">
+        <label>Description</label>
+        <textarea formControlName="description" placeholder="Track planning, design, build, and release work."></textarea>
+      </div>
+      <div class="grid cols-2">
+        <div class="field">
+          <label>Visibility</label>
+          <select formControlName="visibility">
+            <option value="PUBLIC">PUBLIC</option>
+            <option value="PRIVATE">PRIVATE</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Background</label>
+          <input type="text" formControlName="background" placeholder="#d9eaff" />
+        </div>
+      </div>
+      <div class="actions">
+        <button class="button accent" type="submit" [disabled]="loading || boardForm.invalid">
+          {{ loading ? 'Creating...' : 'Create Board' }}
+        </button>
+        <button class="button secondary" type="button" (click)="boardForm.reset(defaultBoardForm)">Reset</button>
+      </div>
+    </form>
+  </section>
+</div>

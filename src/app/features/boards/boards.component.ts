@@ -16,140 +16,15 @@ import { readErrorMessage } from '../../core/utils/error.utils';
   selector: 'app-boards-page',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, RouterLink],
-  template: `
-    <div class="stack page-stack">
-      <section class="hero panel">
-        <div class="badge">Step 3</div>
-        <h1>Boards in workspace #{{ workspaceId }}</h1>
-        <p class="muted">This route handles board creation and board listing only. List and card work starts after opening a board.</p>
-        <div class="actions">
-          <a class="button secondary" [routerLink]="['/workspace', workspaceId]">Back to members</a>
-        </div>
-      </section>
-
-      <section class="panel section-card stack">
-        <h2 class="section-title">Create board</h2>
-        <form class="stack" [formGroup]="form" (ngSubmit)="createBoard()">
-          <div class="field">
-            <label>Board name</label>
-            <input type="text" formControlName="name" placeholder="Product backlog" />
-          </div>
-          <div class="field">
-            <label>Description</label>
-            <textarea formControlName="description" placeholder="Track roadmap items for the quarter"></textarea>
-          </div>
-          <div class="grid cols-2">
-            <div class="field">
-              <label>Visibility</label>
-              <select formControlName="visibility">
-                <option value="PUBLIC">PUBLIC</option>
-                <option value="PRIVATE">PRIVATE</option>
-              </select>
-            </div>
-            <div class="field">
-              <label>Background</label>
-              <input type="text" formControlName="background" placeholder="#0f4c81" />
-            </div>
-          </div>
-          <div class="actions">
-            <button class="button accent" type="submit" [disabled]="form.invalid">Create board</button>
-            <button class="button secondary" type="button" (click)="form.reset(defaultForm)">Reset</button>
-          </div>
-        </form>
-        <p class="error" *ngIf="error">{{ error }}</p>
-        <p class="success" *ngIf="message">{{ message }}</p>
-      </section>
-
-      <section class="panel section-card stack">
-        <div class="actions-between">
-          <h2 class="section-title">Board list</h2>
-          <button class="button secondary" type="button" (click)="loadBoards()">Refresh</button>
-        </div>
-
-        <div class="empty-state" *ngIf="!boards.length">
-          <div class="badge">No boards yet</div>
-          <p class="muted">Create the first board using the form above.</p>
-        </div>
-
-        <div class="board-grid" *ngIf="boards.length">
-          <article class="board-item" *ngFor="let board of boards">
-            <div class="item-top">
-              <div>
-                <h3>{{ board.name }}</h3>
-                <p class="muted">{{ board.description }}</p>
-              </div>
-              <span class="chip">{{ board.visibility }}</span>
-            </div>
-            <div class="chip-row">
-              <span class="chip">#{{ board.boardId }}</span>
-              <span class="chip">{{ board.isClosed ? 'Closed' : 'Open' }}</span>
-            </div>
-            <div class="actions">
-              <a class="button accent" [routerLink]="['/board', board.boardId]">Open board</a>
-              <button class="button secondary" type="button" (click)="toggleBoard(board)">{{ board.isClosed ? 'Open' : 'Close' }}</button>
-            </div>
-          </article>
-        </div>
-      </section>
-    </div>
-  `,
-  styles: [
-    `
-      .page-stack { gap: 16px; }
-      .section-card { padding: 20px; }
-      .actions-between {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        flex-wrap: wrap;
-      }
-      .board-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-        gap: 12px;
-      }
-      .board-item {
-        display: grid;
-        gap: 12px;
-        padding: 14px;
-        border-radius: 12px;
-        border: 1px solid #dbe3ef;
-        background: #fdfefe;
-      }
-      .item-top {
-        display: flex;
-        justify-content: space-between;
-        align-items: start;
-        gap: 12px;
-      }
-      .item-top h3 {
-        margin: 0;
-        color: #1f2a44;
-      }
-      .item-top p {
-        margin: 8px 0 0;
-      }
-      .chip-row { display: flex; gap: 8px; flex-wrap: wrap; }
-      .chip {
-        display: inline-flex;
-        align-items: center;
-        padding: 0.35rem 0.7rem;
-        border-radius: 999px;
-        border: 1px solid #dde5f2;
-        background: #f5f8ff;
-        color: #1f2a44;
-        font-size: 0.8rem;
-        font-weight: 600;
-      }
-    `
-  ]
+  templateUrl: './boards.component.html',
+  styleUrl: './boards.component.css'
 })
 export class BoardsComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly fb = inject(FormBuilder);
   private readonly boardService = inject(BoardService);
   private readonly notify = inject(NotificationService);
+  // destroyRef is used to automatically unsubscribe when the component is destroyed
   private readonly destroyRef = inject(DestroyRef);
 
   workspaceId = 0;
@@ -157,6 +32,7 @@ export class BoardsComponent implements OnInit {
   error = '';
   message = '';
 
+  // Default form values used when resetting
   readonly defaultForm = {
     name: '',
     description: '',
@@ -172,8 +48,8 @@ export class BoardsComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    this.boardService
-      .getBoards()
+    // Subscribe to the shared boards list (updates automatically)
+    this.boardService.getBoards()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((items) => (this.boards = items));
 
@@ -221,12 +97,14 @@ export class BoardsComponent implements OnInit {
   loadBoards(): void {
     this.error = '';
 
+    // Load public boards and private boards at the same time, then merge them
     combineLatest([
       this.boardService.getPublicBoardsForLoggedUser(this.workspaceId, 0, 100).pipe(catchError(() => of(this.emptyPage()))),
       this.boardService.getPrivateBoards(this.workspaceId, 0, 100).pipe(catchError(() => of(this.emptyPage())))
     ]).subscribe({
       next: ([publicPage, privatePage]) => {
         const merged = [...publicPage.content, ...privatePage.content];
+        // Use a Map to remove duplicate boards
         const unique = new Map<number, BoardResponse>();
         for (const board of merged) {
           unique.set(board.boardId, board);
@@ -247,9 +125,6 @@ export class BoardsComponent implements OnInit {
 
   loadPublicOnly(): void {
     this.boardService.getPublicBoards(this.workspaceId, 0, 100).subscribe({
-      next: () => {
-        // Stream updates the view.
-      },
       error: (err) => {
         const message = readErrorMessage(err);
         this.error = message;
@@ -259,11 +134,12 @@ export class BoardsComponent implements OnInit {
   }
 
   toggleBoard(board: BoardResponse): void {
-    const request$ = board.isClosed ? this.boardService.open(board.boardId) : this.boardService.close(board.boardId);
+    const request$ = board.isClosed
+      ? this.boardService.open(board.boardId)
+      : this.boardService.close(board.boardId);
+
     request$.subscribe({
-      next: (message) => {
-        this.notify.info(message);
-      },
+      next: (message) => this.notify.info(message),
       error: (err) => {
         const message = readErrorMessage(err);
         this.error = message;
@@ -272,16 +148,12 @@ export class BoardsComponent implements OnInit {
     });
   }
 
+  // Returns a blank page object used as a fallback when an API call fails
   private emptyPage(): ApiPage<BoardResponse> {
     return {
-      pageSize: 0,
-      pageNumber: 0,
-      numberOfElements: 0,
-      totalPages: 0,
-      totalNumberOfElements: 0,
-      content: [],
-      last: true,
-      first: true
+      pageSize: 0, pageNumber: 0, numberOfElements: 0,
+      totalPages: 0, totalNumberOfElements: 0,
+      content: [], last: true, first: true
     };
   }
 }

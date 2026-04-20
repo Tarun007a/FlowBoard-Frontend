@@ -1,0 +1,120 @@
+<div class="app-shell">
+  <!-- Top navigation bar -->
+  <header class="top-nav">
+    <div class="top-nav-inner">
+      <!-- Logo / brand link -->
+      <a class="brand" routerLink="/workspaces">
+        <span class="brand-mark">F</span>
+        <span class="brand-name">FlowBoard</span>
+      </a>
+
+      <!-- Main nav links -->
+      <nav class="top-links">
+        <a routerLink="/workspaces" routerLinkActive="active">Workspaces</a>
+        <a routerLink="/subscription/plans" routerLinkActive="active">Subscription</a>
+        <a routerLink="/subscription/my" routerLinkActive="active">My Plan</a>
+      </nav>
+
+      <!-- Right-side user actions (only when logged in) -->
+      <div class="top-actions" *ngIf="session">
+
+        <!-- Notifications bell button + dropdown panel -->
+        <div class="notification-wrapper" #notificationWrapper>
+          <button
+            type="button"
+            class="icon-button"
+            (click)="toggleNotificationsPanel($event)"
+            [attr.aria-expanded]="showNotificationsPanel"
+            aria-label="Open notifications">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+              <path d="M13.73 21a2 2 0 01-3.46 0" />
+            </svg>
+            <!-- Unread count badge -->
+            <span class="count-pill" *ngIf="unreadCount > 0">{{ unreadCount }}</span>
+          </button>
+
+          <!-- Notifications dropdown panel -->
+          <section class="notification-panel" *ngIf="showNotificationsPanel" (click)="$event.stopPropagation()">
+            <header class="notification-head">
+              <h3>Notifications</h3>
+              <span class="panel-unread" *ngIf="unreadCount > 0">{{ unreadCount }} unread</span>
+            </header>
+
+            <div class="notification-tools">
+              <button type="button" class="panel-tool" (click)="markAllNotificationsAsRead()" [disabled]="notificationsLoading || panelActionLoading || unreadCount <= 0">
+                Mark all read
+              </button>
+              <button type="button" class="panel-tool" (click)="clearReadNotifications()" [disabled]="notificationsLoading || panelActionLoading || !notifications.length">
+                Clear read
+              </button>
+            </div>
+
+            <div class="notification-state muted" *ngIf="notificationsLoading">Loading notifications...</div>
+            <p class="error notification-state" *ngIf="!notificationsLoading && notificationsError">{{ notificationsError }}</p>
+
+            <ul class="notification-list" *ngIf="!notificationsLoading && !notificationsError && notifications.length">
+              <li
+                class="notification-item"
+                *ngFor="let item of notifications"
+                [class.unread]="!item.isRead"
+                (click)="onNotificationClick(item)">
+                <div class="notification-item-head">
+                  <p class="notification-title">{{ item.title || 'Notification' }}</p>
+                  <button
+                    type="button"
+                    class="item-delete"
+                    (click)="deleteNotificationFromPanel(item.notificationId, $event)"
+                    [disabled]="panelActionLoading"
+                    aria-label="Delete notification">
+                    Delete
+                  </button>
+                </div>
+                <p class="notification-message">{{ item.message }}</p>
+                <time class="notification-time">{{ formatNotificationDate(item.createdAt) }}</time>
+              </li>
+            </ul>
+
+            <div class="notification-state muted" *ngIf="!notificationsLoading && !notificationsError && !notifications.length">
+              No notifications yet
+            </div>
+          </section>
+        </div>
+
+        <!-- Profile chip + dropdown menu -->
+        <div class="profile-wrapper" #profileWrapper>
+          <button
+            type="button"
+            class="profile-chip profile-button"
+            (click)="toggleProfileMenu($event)"
+            [attr.aria-expanded]="showProfileMenu"
+            aria-label="Open profile menu"
+            title="Open profile menu">
+            <span class="profile-avatar">{{ avatarSeed }}</span>
+            <span class="profile-meta">
+              <strong class="profile-name">{{ displayName }}</strong>
+              <span class="profile-email">{{ profileEmail }}</span>
+            </span>
+          </button>
+
+          <section class="profile-menu" *ngIf="showProfileMenu" (click)="$event.stopPropagation()">
+            <button type="button" class="profile-menu-item" (click)="openMyProfile()">My Profile</button>
+            <button type="button" class="profile-menu-item danger" (click)="logout()">Logout</button>
+          </section>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main page content area - router-outlet renders the active route's component here -->
+  <div class="page-frame">
+    <main class="content-panel">
+      <router-outlet />
+    </main>
+  </div>
+
+  <!-- Full-screen loading overlay shown during route navigation -->
+  <div class="route-loading-overlay" *ngIf="routeLoading" aria-live="polite" aria-label="Loading next page">
+    <div class="route-spinner"></div>
+  </div>
+</div>

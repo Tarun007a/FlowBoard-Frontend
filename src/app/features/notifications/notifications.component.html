@@ -1,0 +1,53 @@
+<div class="stack">
+      <section class="panel section-card stack">
+        <header class="notification-header">
+          <div>
+            <div class="badge">Notifications</div>
+            <h1 class="section-title">Your notifications</h1>
+            <p class="muted">Stay updated with mentions, assignments, and workspace activity.</p>
+          </div>
+          <div class="header-actions">
+            <span class="unread-pill" *ngIf="unreadCount > 0">{{ unreadCount }} unread</span>
+            <button class="button secondary" type="button" (click)="markAllAsRead()" [disabled]="loading || actionBusy || unreadCount <= 0">
+              Mark all read
+            </button>
+            <button class="button secondary" type="button" (click)="clearRead()" [disabled]="loading || actionBusy || !notifications.length">
+              Clear read
+            </button>
+          </div>
+        </header>
+
+        <div class="notification-state muted" *ngIf="loading">Loading notifications...</div>
+        <p class="error notification-state" *ngIf="!loading && error">{{ error }}</p>
+
+        <ul class="notification-list" *ngIf="!loading && !error && notifications.length">
+          <li
+            class="notification-item"
+            *ngFor="let item of notifications"
+            [class.unread]="!item.isRead"
+            (click)="onNotificationClick(item)">
+            <div class="notification-row">
+              <p class="notification-title">{{ item.title || 'Notification' }}</p>
+              <button
+                type="button"
+                class="item-delete"
+                (click)="deleteNotification(item.notificationId, $event)"
+                [disabled]="actionBusy"
+                aria-label="Delete notification">
+                Delete
+              </button>
+            </div>
+
+            <p class="notification-message">{{ item.message }}</p>
+            <div class="notification-meta">
+              <span class="notification-badge" [class.read]="item.isRead">{{ item.isRead ? 'Read' : 'Unread' }}</span>
+              <time class="notification-time">{{ formatNotificationDate(item.createdAt) }}</time>
+            </div>
+          </li>
+        </ul>
+
+        <div class="notification-state muted" *ngIf="!loading && !error && !notifications.length">
+          No notifications yet
+        </div>
+      </section>
+    </div>

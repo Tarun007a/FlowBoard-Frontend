@@ -1,0 +1,227 @@
+<!-- Board page - only shown when board data has loaded -->
+<div class="board-page" *ngIf="board; else loadingBoard">
+
+  <!-- Board header bar -->
+  <section class="panel board-top">
+    <div class="board-title-block">
+      <div class="board-chip">Board</div>
+      <h1>{{ board.name }}</h1>
+      <p class="muted">{{ board.description }}</p>
+    </div>
+    <div class="board-actions">
+      <a class="button secondary" [routerLink]="['/workspace', board.workspaceId]">Back</a>
+      <button class="button secondary" type="button" (click)="toggleMembersPanel()">Members</button>
+      <button class="button accent" type="button" (click)="openListModal()">Add List</button>
+    </div>
+  </section>
+
+  <!-- Kanban board: horizontal scrolling columns -->
+  <section class="lane-scroller" *ngIf="orderedLists().length; else emptyListState">
+    <article
+      class="lane"
+      *ngFor="let list of orderedLists()"
+      [style.border-top-color]="list.color"
+      (dragover)="$event.preventDefault()"
+      (drop)="dropOnList(list.listId)">
+
+      <header class="lane-head">
+        <div>
+          <h2>{{ list.name }}</h2>
+          <p>{{ cardsByList(list.listId).length }} cards</p>
+        </div>
+        <button class="lane-menu" type="button" (click)="openCardModal(list.listId)">+</button>
+      </header>
+
+      <div class="lane-cards">
+        <!-- Each card is draggable to move it between lists -->
+        <article
+          class="task-card"
+          *ngFor="let card of cardsByList(list.listId)"
+          draggable="true"
+          (dragstart)="startDrag(card.cardId)"
+          (click)="openCardDetail(card)">
+
+          <h3>{{ card.title }}</h3>
+          <p *ngIf="card.description">{{ card.description }}</p>
+
+          <div class="card-meta-row" *ngIf="card.assigneeId || card.dueDate">
+            <div class="assignee" *ngIf="card.assigneeId as assigneeId">
+              <span class="avatar">{{ assigneeInitial(assigneeId) }}</span>
+              <span>{{ assigneeName(assigneeId) }}</span>
+            </div>
+            <span class="due" *ngIf="card.dueDate">Due {{ formatDueDate(card.dueDate) }}</span>
+          </div>
+
+          <div class="tag-row">
+            <span class="tag" *ngIf="card.priority">{{ card.priority }}</span>
+            <span class="tag" *ngIf="card.status">{{ readableStatus(card.status) }}</span>
+          </div>
+        </article>
+      </div>
+
+      <button class="lane-add-card" type="button" (click)="openCardModal(list.listId)">+ Add a card</button>
+    </article>
+  </section>
+
+  <!-- Shown when board has no lists yet -->
+  <ng-template #emptyListState>
+    <section class="panel empty-list">
+      <div class="board-chip">No Lists</div>
+      <h2>Create your first list</h2>
+      <p class="muted">Add a list to start building a Trello-style workflow.</p>
+      <button class="button accent" type="button" (click)="openListModal()">Create List</button>
+    </section>
+  </ng-template>
+
+  <p class="error" *ngIf="error">{{ error }}</p>
+</div>
+
+<!-- Loading state -->
+<ng-template #loadingBoard>
+  <section class="panel empty-list">
+    <div class="board-chip">Loading</div>
+    <h2>Loading board</h2>
+    <p class="muted">Please wait while board data is fetched.</p>
+  </section>
+</ng-template>
+
+<!-- Create list modal -->
+<div class="modal-overlay" *ngIf="showListModal" (click)="closeModals()">
+  <section class="panel modal-card" (click)="$event.stopPropagation()">
+    <header class="modal-head">
+      <div>
+        <div class="board-chip">List</div>
+        <h2>Create list</h2>
+      </div>
+      <button class="button secondary" type="button" (click)="closeModals()">Close</button>
+    </header>
+
+    <form class="stack" [formGroup]="listForm" (ngSubmit)="saveList()">
+      <div class="field">
+        <label>List Name</label>
+        <input type="text" formControlName="name" placeholder="To Do" />
+      </div>
+      <div class="field">
+        <label>Color</label>
+        <input type="text" formControlName="color" placeholder="#7fb4f0" />
+      </div>
+      <div class="actions">
+        <button class="button accent" type="submit" [disabled]="listForm.invalid">Create List</button>
+      </div>
+    </form>
+  </section>
+</div>
+
+<!-- Create / edit card modal -->
+<div class="modal-overlay" *ngIf="showCardModal" (click)="closeModals()">
+  <section class="panel modal-card" (click)="$event.stopPropagation()">
+    <header class="modal-head">
+      <div>
+        <div class="board-chip">Card</div>
+        <h2>{{ cardForm.controls.cardId.value ? 'Update card' : 'Add card' }}</h2>
+      </div>
+      <button class="button secondary" type="button" (click)="closeModals()">Close</button>
+    </header>
+
+    <form class="stack" [formGroup]="cardForm" (ngSubmit)="saveCard()">
+      <div class="field">
+        <label>Title</label>
+        <input type="text" formControlName="title" placeholder="Implement notifications panel" />
+      </div>
+      <div class="field">
+        <label>Description</label>
+        <textarea formControlName="description" placeholder="Add summary, acceptance criteria, and notes."></textarea>
+      </div>
+      <div class="grid cols-2">
+        <div class="field">
+          <label>List</label>
+          <select formControlName="listId" [disabled]="!!cardForm.controls.cardId.value">
+            <option *ngFor="let list of orderedLists()" [ngValue]="list.listId">{{ list.name }}</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Assignee ID</label>
+          <input type="number" formControlName="assigneeId" placeholder="Optional" [disabled]="!!cardForm.controls.cardId.value" />
+        </div>
+        <div class="field">
+          <label>Priority</label>
+          <select formControlName="priority">
+            <option [ngValue]="null">None</option>
+            <option *ngFor="let item of priorities" [ngValue]="item">{{ item }}</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Status</label>
+          <select formControlName="status">
+            <option [ngValue]="null">None</option>
+            <option *ngFor="let item of statuses" [ngValue]="item">{{ item }}</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Start Date</label>
+          <input type="datetime-local" formControlName="startDate" />
+        </div>
+        <div class="field">
+          <label>Due Date</label>
+          <input type="datetime-local" formControlName="dueDate" />
+        </div>
+      </div>
+      <div class="actions">
+        <button class="button accent" type="submit" [disabled]="cardForm.invalid">
+          {{ cardForm.controls.cardId.value ? 'Update Card' : 'Create Card' }}
+        </button>
+      </div>
+    </form>
+  </section>
+</div>
+
+<!-- Board members side panel -->
+<div class="members-overlay" *ngIf="showMembersPanel" (click)="closeMembersPanel()">
+  <aside class="members-panel" (click)="$event.stopPropagation()">
+    <header>
+      <div>
+        <div class="board-chip dark-chip">Members</div>
+        <h2>Board members</h2>
+        <p class="muted" *ngIf="memberLoadError">{{ memberLoadError }}</p>
+      </div>
+      <button class="button secondary" type="button" (click)="closeMembersPanel()">Close</button>
+    </header>
+
+    <!-- Add member form - only for board owners/admins -->
+    <form class="stack" [formGroup]="memberForm" (ngSubmit)="addBoardMember()" *ngIf="canManageMembers">
+      <div class="field">
+        <label>User ID</label>
+        <input type="number" formControlName="userId" placeholder="Enter user id" />
+      </div>
+      <button class="button accent" type="submit" [disabled]="memberForm.invalid">Add Member</button>
+    </form>
+
+    <section class="member-list" *ngIf="boardMembers.length; else emptyMemberList">
+      <article class="member-row" *ngFor="let member of boardMembers">
+        <div class="member-main">
+          <span class="avatar">{{ memberInitial(member) }}</span>
+          <div>
+            <strong>{{ member.fullName || ('User ' + member.userId) }}</strong>
+            <p>{{ member.email || 'Email unavailable' }}</p>
+          </div>
+        </div>
+        <button class="button danger" type="button" *ngIf="canManageMembers" (click)="removeBoardMember(member.userId)">Remove</button>
+      </article>
+    </section>
+
+    <ng-template #emptyMemberList>
+      <section class="empty-member-state">
+        <p class="muted">No members available.</p>
+      </section>
+    </ng-template>
+  </aside>
+</div>
+
+<!-- Card detail drawer (shows when a card is clicked) -->
+<app-card-detail
+  *ngIf="selectedCard"
+  [card]="selectedCard"
+  [session]="session"
+  [assigneeName]="selectedCard.assigneeId ? assigneeName(selectedCard.assigneeId) : null"
+  (closed)="closeCardDetail()"
+  (requestEdit)="openEditFromDetail($event)" />

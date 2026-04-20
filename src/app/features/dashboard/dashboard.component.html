@@ -1,0 +1,54 @@
+<div class="stack dashboard-stack">
+  <!-- Hero banner section -->
+  <section class="hero panel">
+    <div class="badge">Flowboard</div>
+    <h1>One clear flow from workspace to card</h1>
+    <p class="muted">Start with workspaces, then move through members, boards, and cards.</p>
+    <div class="actions">
+      <a class="button accent" routerLink="/workspaces">Start with workspaces</a>
+    </div>
+  </section>
+
+  <!-- Summary metrics (logged-in user info) -->
+  <section class="panel section-card metrics">
+    <article class="metric-item">
+      <span class="muted">Signed in</span>
+      <strong>{{ session?.email || '-' }}</strong>
+    </article>
+    <article class="metric-item">
+      <span class="muted">My workspaces</span>
+      <strong>{{ workspaceCount ?? '-' }}</strong>
+    </article>
+    <article class="metric-item">
+      <span class="muted">Unread notifications</span>
+      <strong>{{ unreadCount ?? '-' }}</strong>
+    </article>
+  </section>
+
+  <!-- Step-by-step guide -->
+  <section class="panel section-card">
+    <h2 class="section-title">Progressive steps</h2>
+    <div class="step-grid">
+      <a class="step" routerLink="/workspaces">
+        <span class="step-no">01</span>
+        <h3>Workspaces</h3>
+        <p class="muted">Create and browse workspaces.</p>
+      </a>
+      <article class="step disabled">
+        <span class="step-no">02</span>
+        <h3>Members</h3>
+        <p class="muted">Open any workspace to manage members.</p>
+      </article>
+      <article class="step disabled">
+        <span class="step-no">03</span>
+        <h3>Boards</h3>
+        <p class="muted">Create boards inside the workspace.</p>
+      </article>
+      <article class="step disabled">
+        <span class="step-no">04</span>
+        <h3>Lists and cards</h3>
+        <p class="muted">Organize execution on the board canvas.</p>
+      </article>
+    </div>
+  </section>
+</div>

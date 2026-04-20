@@ -1,0 +1,99 @@
+<div class="stack">
+      <section class="hero">
+        <div class="badge">Comment APIs</div>
+        <h1>Comment threads and attachments</h1>
+        <p class="muted">Create comments, page through replies, inspect deletion state, and manage file attachments on the same card.</p>
+      </section>
+
+      <section class="grid cols-2">
+        <div class="panel section-card stack">
+          <h2 class="section-title">Add / update comment</h2>
+          <form class="stack" [formGroup]="form" (ngSubmit)="saveComment()">
+            <div class="grid cols-2">
+              <div class="field"><label>Comment ID</label><input type="number" formControlName="commentId" /></div>
+              <div class="field"><label>Card ID</label><input type="number" formControlName="cardId" /></div>
+              <div class="field"><label>Author ID</label><input type="number" formControlName="authorId" /></div>
+              <div class="field"><label>Parent comment ID</label><input type="number" formControlName="parentCommentId" /></div>
+              <div class="field"><label>Content</label><textarea formControlName="content"></textarea></div>
+            </div>
+            <div class="actions">
+              <button class="button accent" type="submit">Save</button>
+              <button class="button secondary" type="button" (click)="loadByCard()">By card</button>
+              <button class="button secondary" type="button" (click)="loadReplies()">Replies</button>
+              <button class="button secondary" type="button" (click)="countComments()">Count</button>
+              <button class="button secondary" type="button" (click)="loadAttachments()">Attachments</button>
+              <button class="button danger" type="button" (click)="deleteComment()">Delete</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="panel section-card stack">
+          <h2 class="section-title">Lookup and filters</h2>
+          <div class="grid cols-2">
+            <div class="field"><label>Card ID</label><input type="number" [formControl]="cardLookup" /></div>
+            <div class="field"><label>Reply comment ID</label><input type="number" [formControl]="replyLookup" /></div>
+            <div class="field"><label>Page</label><input type="number" [formControl]="page" /></div>
+            <div class="field"><label>Size</label><input type="number" [formControl]="size" /></div>
+            <div class="field"><label>Sort by</label><input type="text" [formControl]="sortBy" /></div>
+            <div class="field"><label>Direction</label><select [formControl]="direction"><option value="ASC">ASC</option><option value="DESC">DESC</option></select></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="grid cols-2">
+        <div class="panel section-card stack">
+          <h2 class="section-title">Attachment uploader</h2>
+          <div class="grid cols-2">
+            <div class="field"><label>Card ID</label><input type="number" [formControl]="attachmentCardLookup" /></div>
+            <div class="field"><label>Uploader ID</label><input type="number" [formControl]="uploaderId" /></div>
+            <div class="field full"><label>File</label><input type="file" (change)="onFileSelected($event)" /></div>
+          </div>
+          <div class="actions">
+            <button class="button accent" type="button" (click)="uploadAttachment()">Upload</button>
+            <button class="button secondary" type="button" (click)="loadAttachments()">Refresh</button>
+          </div>
+        </div>
+
+        <div class="panel section-card stack">
+          <h2 class="section-title">Attachment actions</h2>
+          <div class="field"><label>Attachment ID</label><input type="number" [formControl]="attachmentId" /></div>
+          <div class="actions">
+            <button class="button danger" type="button" (click)="deleteAttachment()">Delete attachment</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel section-card stack">
+        <p class="error" *ngIf="error">{{ error }}</p>
+        <p class="success" *ngIf="message">{{ message }}</p>
+        <div class="muted" *ngIf="count !== null">Comment count: {{ count }}</div>
+        <table class="table" *ngIf="comments.length">
+          <thead><tr><th>ID</th><th>Card</th><th>Author</th><th>Parent</th><th>Status</th><th>Created</th><th>Updated</th><th>Content</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let item of comments" (click)="edit(item)">
+              <td>{{ item.commentId }}</td>
+              <td>{{ item.cardId }}</td>
+              <td>{{ item.authorId }}</td>
+              <td>{{ item.parentCommentId || '-' }}</td>
+              <td>{{ item.isDeleted ? 'Deleted' : 'Active' }}</td>
+              <td>{{ item.createdAt }}</td>
+              <td>{{ item.updatedAt }}</td>
+              <td>{{ item.content }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <table class="table" *ngIf="attachments.length">
+          <thead><tr><th>ID</th><th>File</th><th>Type</th><th>Size KB</th><th>Uploaded</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let item of attachments" (click)="selectAttachment(item)">
+              <td>{{ item.attachmentId }}</td>
+              <td><a [href]="item.fileUrl" target="_blank" rel="noreferrer">{{ item.fileName }}</a></td>
+              <td>{{ item.fileType }}</td>
+              <td>{{ item.sizeKb }}</td>
+              <td>{{ item.uploadedAt }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+    </div>
