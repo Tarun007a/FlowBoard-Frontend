@@ -135,13 +135,13 @@
       <div class="grid cols-2">
         <div class="field">
           <label>List</label>
-          <select formControlName="listId" [disabled]="!!cardForm.controls.cardId.value">
+          <select formControlName="listId">
             <option *ngFor="let list of orderedLists()" [ngValue]="list.listId">{{ list.name }}</option>
           </select>
         </div>
         <div class="field">
           <label>Assignee ID</label>
-          <input type="number" formControlName="assigneeId" placeholder="Optional" [disabled]="!!cardForm.controls.cardId.value" />
+          <input type="number" formControlName="assigneeId" placeholder="Optional" />
         </div>
         <div class="field">
           <label>Priority</label>

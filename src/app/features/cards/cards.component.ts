@@ -134,6 +134,7 @@ export class CardsComponent implements OnInit {
   openCardModal(listId: number): void {
     this.showCardModal = true;
     this.showListModal = false;
+    this.setCardFormEditMode(false);
     // Reset the card form with the chosen list pre-selected
     this.cardForm.reset({ cardId: null, listId, title: '', description: '', priority: null, status: null, dueDate: '', startDate: '', assigneeId: null });
   }
@@ -180,12 +181,19 @@ export class CardsComponent implements OnInit {
     const listId = value.listId;
     if (!listId) return;
 
+    // Backend currently rejects null assigneeId on create, so default to current user.
+    const assigneeId = value.assigneeId ?? this.session?.userId ?? null;
+    if (!assigneeId) {
+      this.notify.error('Unable to determine assignee. Please sign in again.');
+      return;
+    }
+
     this.cardService.create({
       listId, boardId: this.boardId,
       title: value.title, description: value.description,
       priority: value.priority, status: value.status,
       dueDate: this.normalizeDate(value.dueDate), startDate: this.normalizeDate(value.startDate),
-      assigneeId: value.assigneeId
+      assigneeId
     }).subscribe({
       next: () => { this.notify.success('Card created'); this.closeModals(); },
       error: (err) => { const message = readErrorMessage(err); this.error = message; this.notify.error(message); }
@@ -240,6 +248,7 @@ export class CardsComponent implements OnInit {
   editCard(card: CardResponse): void {
     this.showCardModal = true;
     this.showListModal = false;
+    this.setCardFormEditMode(false);
     this.cardForm.patchValue({
       cardId: card.cardId, listId: card.listId,
       title: card.title, description: card.description,
@@ -247,6 +256,7 @@ export class CardsComponent implements OnInit {
       dueDate: this.toDateInput(card.dueDate), startDate: this.toDateInput(card.startDate),
       assigneeId: card.assigneeId
     });
+    this.setCardFormEditMode(true);
   }
 
   // Called when drag starts - remember which card is being dragged
@@ -362,5 +372,19 @@ export class CardsComponent implements OnInit {
 
   private notifyPermissionDenied(): void {
     this.notify.error('You do not have permission for this action');
+  }
+
+  private setCardFormEditMode(isEditing: boolean): void {
+    const listIdControl = this.cardForm.controls.listId;
+    const assigneeControl = this.cardForm.controls.assigneeId;
+
+    if (isEditing) {
+      listIdControl.disable({ emitEvent: false });
+      assigneeControl.disable({ emitEvent: false });
+      return;
+    }
+
+    listIdControl.enable({ emitEvent: false });
+    assigneeControl.enable({ emitEvent: false });
   }
 }
