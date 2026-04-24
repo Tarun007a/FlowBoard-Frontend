@@ -11,6 +11,7 @@
       <!-- Main nav links -->
       <nav class="top-links">
         <a routerLink="/workspaces" routerLinkActive="active">Workspaces</a>
+        <a *ngIf="isAdmin" routerLink="/admin/dashboard" routerLinkActive="active">Admin</a>
         <a routerLink="/subscription/plans" routerLinkActive="active">Subscription</a>
         <a routerLink="/subscription/my" routerLinkActive="active">My Plan</a>
       </nav>

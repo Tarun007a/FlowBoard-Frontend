@@ -53,7 +53,6 @@ export class WorkspacesComponent implements OnInit {
   creatingWorkspace = false;
   loadingSections = false;
   publicSectionEnabled = true;
-  joiningWorkspaceId: number | null = null;  // ID of workspace currently being joined
   openingWorkspaceId: number | null = null;  // ID of workspace currently being navigated to
   error = '';
   createError = '';
@@ -125,35 +124,6 @@ export class WorkspacesComponent implements OnInit {
       });
   }
 
-  joinWorkspace(workspace: WorkspaceResponse, event: Event): void {
-    // Stop the click from bubbling up to the card's openWorkspace() click
-    event.stopPropagation();
-
-    if (!this.session?.userId) {
-      this.notify.error('Login required to join workspace');
-      return;
-    }
-
-    this.joiningWorkspaceId = workspace.workspaceId;
-    this.workspaceService.addMember({ workspaceId: workspace.workspaceId, userId: this.session.userId })
-      .pipe(finalize(() => (this.joiningWorkspaceId = null)))
-      .subscribe({
-        next: () => {
-          this.promotePublicWorkspaceToJoined(workspace.workspaceId);
-          this.notify.success('Joined workspace successfully');
-          this.loadWorkspaceSections({ announceJoinedLoaded: true });
-        },
-        error: (err) => this.notify.error(readErrorMessage(err))
-      });
-  }
-
-  canJoin(workspace: WorkspaceResponse): boolean {
-    if (!this.session) return false;
-    const owned = workspace.ownerId === this.session.userId;
-    const joined = this.combinedWorkspaces.some((item) => item.workspaceId === workspace.workspaceId);
-    return !owned && !joined;
-  }
-
   isOwner(workspace: WorkspaceResponse): boolean {
     return workspace.ownerId === this.session?.userId;
   }
@@ -184,7 +154,7 @@ export class WorkspacesComponent implements OnInit {
     return tones[Math.abs(workspaceId) % tones.length] as string;
   }
 
-  private loadWorkspaceSections(options: { announceJoinedLoaded?: boolean } = {}): void {
+  private loadWorkspaceSections(): void {
     this.loadingSections = true;
     this.error = '';
 
@@ -229,7 +199,6 @@ export class WorkspacesComponent implements OnInit {
             this.updateMeta(workspace);
           }
 
-          if (options.announceJoinedLoaded) this.notify.info('Joined workspace loaded');
           if (joinedLoadFailed) this.notify.error('Failed to load joined workspaces');
           if (hasLoadError) {
             this.error = 'Failed to load workspaces';
@@ -249,15 +218,6 @@ export class WorkspacesComponent implements OnInit {
     this.publicWorkspaces = this.publicWorkspaces.filter((item) => item.workspaceId !== workspace.workspaceId);
     this.rebuildCombinedLists();
     this.updateMeta(workspace);
-  }
-
-  private promotePublicWorkspaceToJoined(workspaceId: number): void {
-    const found = this.publicWorkspaces.find((item) => item.workspaceId === workspaceId);
-    if (!found) return;
-    this.publicWorkspaces = this.publicWorkspaces.filter((item) => item.workspaceId !== workspaceId);
-    this.joinedWorkspaces = this.sortByRecent([found, ...this.joinedWorkspaces.filter((item) => item.workspaceId !== workspaceId)]);
-    this.rebuildCombinedLists();
-    this.updateMeta(found);
   }
 
   private rebuildCombinedLists(): void {

@@ -1,0 +1,40 @@
+<svg width="640" height="360" viewBox="0 0 640 360" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="68" y1="52" x2="560" y2="318" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F4FAFF" />
+      <stop offset="1" stop-color="#E7F2FF" />
+    </linearGradient>
+    <linearGradient id="card" x1="149" y1="95" x2="474" y2="288" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" />
+      <stop offset="1" stop-color="#F7FBFF" />
+    </linearGradient>
+    <linearGradient id="tab" x1="228" y1="150" x2="428" y2="150" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8EC2F5" />
+      <stop offset="1" stop-color="#5F9FDD" />
+    </linearGradient>
+  </defs>
+
+  <rect x="42" y="28" width="556" height="304" rx="26" fill="url(#bg)" stroke="#C6DCF4" stroke-width="2" />
+
+  <circle cx="130" cy="88" r="22" fill="#E9F4FF" />
+  <circle cx="516" cy="268" r="18" fill="#E4F0FF" />
+  <circle cx="90" cy="280" r="12" fill="#D7E9FD" />
+
+  <rect x="138" y="82" width="364" height="214" rx="22" fill="url(#card)" stroke="#C6DBF3" stroke-width="2" />
+  <rect x="170" y="116" width="118" height="12" rx="6" fill="#D8EAFE" />
+  <rect x="170" y="138" width="188" height="10" rx="5" fill="#E5F1FE" />
+
+  <rect x="170" y="174" width="300" height="94" rx="14" fill="#EFF6FF" stroke="#D0E2F7" />
+  <rect x="188" y="192" width="120" height="12" rx="6" fill="url(#tab)" />
+  <rect x="188" y="214" width="168" height="10" rx="5" fill="#D9E9FC" />
+  <rect x="188" y="232" width="98" height="10" rx="5" fill="#CFE3FA" />
+
+  <path d="M410 195L418.236 211.691L436.657 214.368L423.328 227.361L426.472 245.707L410 237.045L393.528 245.707L396.672 227.361L383.343 214.368L401.764 211.691L410 195Z" fill="#F0B83E" stroke="#DFA02A" stroke-width="1.5" />
+
+  <path d="M503 88C503 80.268 509.268 74 517 74H543C550.732 74 557 80.268 557 88V101C557 108.732 550.732 115 543 115H517C509.268 115 503 108.732 503 101V88Z" fill="#EFF7FF" stroke="#C5DCF5" stroke-width="2" />
+  <path d="M518 85L521.8 92.7L530.3 93.9L524.15 99.9L525.6 108.4L518 104.4L510.4 108.4L511.85 99.9L505.7 93.9L514.2 92.7L518 85Z" fill="#E2AA2A" />
+
+  <path d="M109 186C109 178.268 115.268 172 123 172H149C156.732 172 163 178.268 163 186V199C163 206.732 156.732 213 149 213H123C115.268 213 109 206.732 109 199V186Z" fill="#EEF7FF" stroke="#C3DBF5" stroke-width="2" />
+  <rect x="120" y="185" width="31" height="8" rx="4" fill="#9CC5EE" />
+  <rect x="120" y="197" width="19" height="6" rx="3" fill="#C6DDF5" />
+</svg>

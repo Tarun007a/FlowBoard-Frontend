@@ -1,0 +1,72 @@
+<section class="admin-page stack">
+  <header class="panel admin-header">
+    <div>
+      <h1>Admin Panel</h1>
+      <p class="muted">Manage user accounts from Auth Service admin APIs.</p>
+    </div>
+    <button class="button secondary" type="button" (click)="logout()">Logout</button>
+  </header>
+
+  <section class="panel admin-content stack">
+    <form class="admin-search" [formGroup]="searchForm" (ngSubmit)="onSearchSubmit()">
+      <input
+        type="text"
+        formControlName="query"
+        placeholder="Search by username or email"
+        aria-label="Search by username or email"
+      />
+      <button class="button accent" type="submit" [disabled]="loading">Search</button>
+    </form>
+
+    <p class="error" *ngIf="error">{{ error }}</p>
+    <p class="muted" *ngIf="loading">Loading users...</p>
+
+    <div class="admin-table-wrap" *ngIf="!loading">
+      <table class="table" *ngIf="users.length; else emptyState">
+        <thead>
+          <tr>
+            <th>User ID</th>
+            <th>Username</th>
+            <th>Email</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let user of users; trackBy: trackByUserId">
+            <td>{{ user.userId }}</td>
+            <td>{{ user.fullName }}</td>
+            <td>{{ user.email }}</td>
+            <td>
+              <span class="status" [class.disabled]="isDisabled(user)">
+                {{ statusLabel(user) }}
+              </span>
+            </td>
+            <td>
+              <div class="actions">
+                <button
+                  class="button secondary"
+                  type="button"
+                  (click)="toggleStatus(user)"
+                  [disabled]="actionLoadingUserId === user.userId">
+                  {{ isDisabled(user) ? 'Enable' : 'Disable' }}
+                </button>
+                <button
+                  class="button danger"
+                  type="button"
+                  (click)="deleteUser(user)"
+                  [disabled]="actionLoadingUserId === user.userId">
+                  Delete
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</section>
+
+<ng-template #emptyState>
+  <div class="empty-state">No users found.</div>
+</ng-template>

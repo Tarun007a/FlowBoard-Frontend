@@ -14,6 +14,7 @@ import { BoardService } from '../../core/services/board.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { UserService } from '../../core/services/user.service';
 import { WorkspaceService } from '../../core/services/workspace.service';
+import { isAdminRole } from '../../core/utils/admin.utils';
 import { readErrorMessage } from '../../core/utils/error.utils';
 
 // Stores the member count for each board card
@@ -85,13 +86,10 @@ export class WorkspaceDetailComponent implements OnInit {
   removingMemberUserId: number | null = null;
   error = '';
 
-  // Prevents showing "Workspace loaded" toast more than once per visit
-  private workspaceLoadedToastShown = false;
-
   // Only workspace owners and admins can manage the workspace
   get canManageWorkspace(): boolean {
     if (!this.workspace || !this.session) return false;
-    return this.workspace.ownerId === this.session.userId || this.session.role === 'ADMIN';
+    return this.workspace.ownerId === this.session.userId || isAdminRole(this.session.role);
   }
 
   ngOnInit(): void {
@@ -123,7 +121,7 @@ export class WorkspaceDetailComponent implements OnInit {
   }
 
   openUpdateModal(): void {
-    if (!this.canManageWorkspace) { this.notifyPermissionDenied(); return; }
+    if (!this.canManageWorkspace) return;
     if (!this.workspace) return;
 
     // Pre-fill the form with current workspace values
@@ -139,7 +137,7 @@ export class WorkspaceDetailComponent implements OnInit {
   closeUpdateModal(): void { this.showUpdateModal = false; }
 
   updateWorkspace(): void {
-    if (!this.canManageWorkspace) { this.notifyPermissionDenied(); return; }
+    if (!this.canManageWorkspace) return;
     if (this.workspaceForm.invalid) { this.workspaceForm.markAllAsTouched(); return; }
 
     this.loading = true;
@@ -162,7 +160,7 @@ export class WorkspaceDetailComponent implements OnInit {
   }
 
   deleteWorkspace(): void {
-    if (!this.canManageWorkspace) { this.notifyPermissionDenied(); return; }
+    if (!this.canManageWorkspace) return;
 
     const confirmed = window.confirm('Are you sure you want to delete this workspace?');
     if (!confirmed) return;
@@ -181,7 +179,7 @@ export class WorkspaceDetailComponent implements OnInit {
   }
 
   openBoardModal(): void {
-    if (!this.canManageWorkspace) { this.notifyPermissionDenied(); return; }
+    if (!this.canManageWorkspace) return;
     this.error = '';
     this.showBoardModal = true;
   }
@@ -202,7 +200,7 @@ export class WorkspaceDetailComponent implements OnInit {
   closeMembersPanel(): void { this.showMembersPanel = false; }
 
   createBoard(): void {
-    if (!this.canManageWorkspace) { this.notifyPermissionDenied(); return; }
+    if (!this.canManageWorkspace) return;
     if (this.boardForm.invalid) { this.boardForm.markAllAsTouched(); return; }
 
     this.loading = true;
@@ -235,7 +233,7 @@ export class WorkspaceDetailComponent implements OnInit {
   }
 
   addMember(): void {
-    if (!this.canManageWorkspace) { this.notifyPermissionDenied(); return; }
+    if (!this.canManageWorkspace) return;
     if (this.memberForm.invalid) { this.memberForm.markAllAsTouched(); return; }
 
     const userId = this.memberForm.getRawValue().userId;
@@ -297,7 +295,7 @@ export class WorkspaceDetailComponent implements OnInit {
   }
 
   removeMember(member: WorkspaceMemberResponse): void {
-    if (!this.canRemoveMember(member)) { this.notifyPermissionDenied(); return; }
+    if (!this.canRemoveMember(member)) return;
 
     this.removingMemberUserId = member.userId;
     this.workspaceService.removeMember(this.workspaceId, member.userId)
@@ -308,7 +306,7 @@ export class WorkspaceDetailComponent implements OnInit {
           this.loadWorkspaceMembers();
         },
         error: (err) => {
-          if (this.isNoAccessError(err)) { this.notifyPermissionDenied(); return; }
+          if (this.isNoAccessError(err)) return;
           const message = readErrorMessage(err);
           this.error = message;
           this.notify.error(message);
@@ -338,10 +336,6 @@ export class WorkspaceDetailComponent implements OnInit {
     this.workspaceService.getWorkspaceById(this.workspaceId).subscribe({
       next: (workspace) => {
         this.workspace = workspace;
-        if (!this.workspaceLoadedToastShown) {
-          this.notify.success('Workspace loaded');
-          this.workspaceLoadedToastShown = true;
-        }
       },
       error: (err) => {
         if (this.isNoAccessError(err)) { this.error = 'Unable to load workspace details.'; return; }
@@ -393,10 +387,6 @@ export class WorkspaceDetailComponent implements OnInit {
   private isNoAccessError(error: unknown): boolean {
     if (!(error instanceof HttpErrorResponse)) return false;
     return error.status === 401 || error.status === 403;
-  }
-
-  private notifyPermissionDenied(): void {
-    this.notify.error('You do not have permission for this action');
   }
 
   private loadBoards(): void {

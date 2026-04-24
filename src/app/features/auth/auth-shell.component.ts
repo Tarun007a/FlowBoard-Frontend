@@ -4,9 +4,9 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
-import { NotificationService } from '../../core/services/notification.service';
 import { WorkspaceService } from '../../core/services/workspace.service';
 import { readHttpErrorMessage } from '../../core/utils/error.utils';
+import { isAdminRole } from '../../core/utils/admin.utils';
 
 // The two possible tabs on this page
 type AuthTab = 'login' | 'signup';
@@ -27,7 +27,6 @@ export class AuthShellComponent implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
-  private readonly notify = inject(NotificationService);
   private readonly workspaceService = inject(WorkspaceService);
 
   // State variables
@@ -93,19 +92,22 @@ export class AuthShellComponent implements OnInit {
       .pipe(finalize(() => (this.loading = false)))
       .subscribe({
         next: () => {
-          this.loginMessage = 'Welcome back!';
-          this.notify.success('Welcome back!');
-          // Pre-load workspaces in the background after login
-          this.workspaceService.getMyWorkspaces(0, 100).subscribe({ error: () => {} });
-          this.router.navigate(['/workspaces']);
+          const role = this.auth.currentRole();
+          if (!isAdminRole(role)) {
+            // Pre-load workspaces in the background after normal user login.
+            this.workspaceService.getMyWorkspaces(0, 100).subscribe({ error: () => {} });
+          }
+
+          this.router.navigate([this.auth.resolvePostLoginRoute()]);
         },
         error: (err) => {
           const status = Number((err as { status?: unknown })?.status ?? 0);
           const message = status === 401
-            ? 'Invalid email or password'
-            : readHttpErrorMessage(err, 'Login failed. Please try again.');
+            ? 'Invalid credentials'
+            : status === 403
+              ? 'Unauthorized'
+              : readHttpErrorMessage(err, 'Login failed. Please try again.');
           this.loginError = message;
-          this.notify.error(message);
         }
       });
   }
@@ -129,15 +131,12 @@ export class AuthShellComponent implements OnInit {
       .pipe(finalize(() => (this.loading = false)))
       .subscribe({
         next: () => {
-          this.signupMessage = 'Account created successfully';
-          this.notify.success('Account created successfully');
           this.activeTab = 'login';
           this.router.navigate(['/login']);
         },
         error: (err) => {
           const message = readHttpErrorMessage(err, 'Signup failed. Please try again.');
           this.signupError = message;
-          this.notify.error(message);
         }
       });
   }

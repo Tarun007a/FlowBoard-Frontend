@@ -58,6 +58,12 @@
 .lane-head h2 { margin: 0; font-size: 1rem; }
 .lane-head p { margin: 0.2rem 0 0; font-size: 0.8rem; color: #5a7392; }
 
+.lane-head-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
 .lane-menu {
   border: 0;
   border-radius: 10px;
@@ -67,6 +73,33 @@
   color: #21578f;
   cursor: pointer;
   font-size: 1.05rem;
+}
+
+.lane-delete {
+  border: 0;
+  border-radius: 10px;
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  color: #6d84a3;
+  cursor: pointer;
+  font-size: 0.9rem;
+  opacity: 0.35;
+  transition: opacity 120ms ease, background-color 120ms ease, color 120ms ease;
+}
+
+.lane:hover .lane-delete {
+  opacity: 0.85;
+}
+
+.lane-delete:hover {
+  background: #ebf1f8;
+  color: #305f8d;
+}
+
+.lane-delete:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
 }
 
 .lane-cards { display: grid; gap: 0.55rem; }
@@ -81,7 +114,49 @@
   cursor: grab;
 }
 
+.task-card.task-card-done {
+  background: linear-gradient(135deg, #eef6ff, #e4f0ff);
+  border-color: #bdd6f1;
+  opacity: 0.78;
+}
+
+.task-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.done-toggle {
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  border-radius: 999px;
+  border: 1.6px solid #8eb1d6;
+  background: #ffffff;
+  color: #ffffff;
+  display: grid;
+  place-items: center;
+  font-size: 0.75rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+
+.done-toggle.checked {
+  background: #2a6da8;
+  border-color: #2a6da8;
+}
+
+.done-toggle:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
 .task-card h3 { margin: 0; font-size: 0.95rem; }
+.task-card h3.done-title {
+  text-decoration: line-through;
+  color: #4f6988;
+}
 .task-card p { margin: 0; color: #556f8f; font-size: 0.85rem; }
 
 .card-meta-row { display: flex; justify-content: space-between; gap: 0.35rem; flex-wrap: wrap; }

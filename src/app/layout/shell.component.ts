@@ -10,6 +10,7 @@ import { AuthSession, UserDto } from '../core/models/auth.models';
 import { NotificationResponse } from '../core/models/notification.models';
 import { CurrentUserProfileService } from '../core/services/current-user-profile.service';
 import { SubscriptionService } from '../core/services/subscription.service';
+import { isAdminRole } from '../core/utils/admin.utils';
 
 @Component({
   selector: 'app-shell',
@@ -55,6 +56,10 @@ export class ShellComponent implements OnInit {
 
   get profileEmail(): string {
     return this.profile?.email?.trim() || this.session?.email || '';
+  }
+
+  get isAdmin(): boolean {
+    return isAdminRole(this.session?.role);
   }
 
   // The first letter of the user's name, used as an avatar

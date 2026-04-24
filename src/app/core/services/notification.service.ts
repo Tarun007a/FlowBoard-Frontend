@@ -19,6 +19,15 @@ export class NotificationService implements OnDestroy {
   readonly uiNotification$ = this.uiNotificationSubject.asObservable();
   private notificationSeed = 0;
   private dismissTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly criticalErrorPatterns: RegExp[] = [
+    /login failed/i,
+    /invalid credentials/i,
+    /password reset failed/i,
+    /network unavailable/i,
+    /network error/i,
+    /unable to reach server/i,
+    /connection refused/i
+  ];
 
   constructor(
     private readonly api: ApiService,
@@ -26,15 +35,25 @@ export class NotificationService implements OnDestroy {
   ) {}
 
   success(message: string): void {
-    this.present('success', message);
+    this.logSilently('success', message);
   }
 
   error(message: string): void {
-    this.present('error', message);
+    const trimmed = message.trim();
+    if (!trimmed) {
+      return;
+    }
+
+    if (this.shouldShowErrorToUser(trimmed)) {
+      this.present('error', trimmed);
+      return;
+    }
+
+    console.error(`[notify:error] ${trimmed}`);
   }
 
   info(message: string): void {
-    this.present('info', message);
+    this.logSilently('info', message);
   }
 
   clear(): void {
@@ -119,5 +138,18 @@ export class NotificationService implements OnDestroy {
     this.dismissTimer = setTimeout(() => {
       this.uiNotificationSubject.next(null);
     }, 2600);
+  }
+
+  private shouldShowErrorToUser(message: string): boolean {
+    return this.criticalErrorPatterns.some((pattern) => pattern.test(message));
+  }
+
+  private logSilently(type: UiNotificationType, message: string): void {
+    const trimmed = message.trim();
+    if (!trimmed) {
+      return;
+    }
+
+    console.log(`[notify:${type}] ${trimmed}`);
   }
 }

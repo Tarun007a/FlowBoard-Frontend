@@ -8,6 +8,7 @@ import { AttachmentService } from '../../core/services/attachment.service';
 import { CommentService } from '../../core/services/comment.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { UserService } from '../../core/services/user.service';
+import { isAdminRole } from '../../core/utils/admin.utils';
 import { readErrorMessage } from '../../core/utils/error.utils';
 
 @Component({
@@ -32,6 +33,7 @@ export class CardDetailComponent implements OnChanges {
   // Outputs: events emitted back to the parent
   @Output() closed = new EventEmitter<void>();
   @Output() requestEdit = new EventEmitter<CardResponse>();
+  @Output() requestDelete = new EventEmitter<CardResponse>();
 
   attachments: AttachmentResponse[] = [];
   comments: CommentResponse[] = [];
@@ -63,6 +65,12 @@ export class CardDetailComponent implements OnChanges {
   }
 
   close(): void { this.closed.emit(); }
+
+  deleteCard(): void {
+    const confirmed = confirm('Are you sure you want to delete this card?');
+    if (!confirmed) return;
+    this.requestDelete.emit(this.card);
+  }
 
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
@@ -109,7 +117,7 @@ export class CardDetailComponent implements OnChanges {
 
   canDeleteAttachment(item: AttachmentResponse): boolean {
     if (!this.session) return false;
-    return this.session.role === 'ADMIN' || this.session.userId === item.uploaderId;
+    return isAdminRole(this.session.role) || this.session.userId === item.uploaderId;
   }
 
   addComment(): void {
@@ -194,7 +202,7 @@ export class CardDetailComponent implements OnChanges {
 
   canManageComment(item: CommentResponse): boolean {
     if (!this.session) return false;
-    return this.session.role === 'ADMIN' || this.session.userId === item.authorId;
+    return isAdminRole(this.session.role) || this.session.userId === item.authorId;
   }
 
   commentAuthor(authorId: number): string {

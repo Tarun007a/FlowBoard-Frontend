@@ -25,6 +25,7 @@ export interface UserDto {
   email: string;
   avatarUrl: string | null;
   userId: number;
+  isActive: boolean;
 }
 
 export interface AuthSession {

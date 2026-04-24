@@ -31,6 +31,10 @@
 
 .detail-head h2 { margin: 10px 0 0; }
 
+.detail-delete {
+  min-width: 88px;
+}
+
 .detail-section {
   border: 1px solid #d6e4f5;
   border-radius: 12px;

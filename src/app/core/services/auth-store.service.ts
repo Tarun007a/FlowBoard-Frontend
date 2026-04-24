@@ -27,7 +27,7 @@ export class AuthStoreService {
       ? {
           token,
           userId: Number(payload['userId'] ?? 0),
-          email: String(payload['username'] ?? payload['email'] ?? ''),
+          email: String(payload['username'] ?? payload['email'] ?? payload['sub'] ?? ''),
           role: String(payload['role'] ?? 'USER')
         }
       : null;

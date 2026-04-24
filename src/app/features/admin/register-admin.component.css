@@ -1,0 +1,23 @@
+.admin-register-page {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+
+.admin-register-card {
+  width: min(460px, 100%);
+  padding: 20px;
+  background: #ffffff;
+  border: 1px solid #d5e5fb;
+}
+
+.admin-register-header {
+  margin-bottom: 14px;
+}
+
+.admin-register-header h1 {
+  margin: 10px 0 6px;
+  font-size: 1.3rem;
+  color: #163962;
+}

@@ -46,7 +46,6 @@ export class MySubscriptionComponent implements OnInit {
         this.subscription = subscription;
         this.noActiveSubscription = false;
         this.loading = false;
-        this.notify.info('Subscription loaded');
       },
       error: (err) => {
         const message = readErrorMessage(err);
@@ -57,7 +56,6 @@ export class MySubscriptionComponent implements OnInit {
 
         if (status === 400 && message.toLowerCase().includes('user not found')) {
           this.noActiveSubscription = true;
-          this.notify.info('No active plan');
           return;
         }
 

@@ -39,8 +39,7 @@ export class OAuthSuccessComponent implements OnInit, OnDestroy {
             return;
           }
 
-          this.notify.success('Google login successful');
-          this.router.navigate(['/workspaces'], { replaceUrl: true });
+          this.router.navigate([this.auth.resolvePostLoginRoute()], { replaceUrl: true });
         },
         error: () => this.handleFailure()
       });

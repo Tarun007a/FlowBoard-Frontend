@@ -103,16 +103,6 @@
           <div class="public-meta">
             <span>Members: {{ asCount(metaFor(workspace.workspaceId).memberCount) }}</span>
           </div>
-
-          <!-- Join button only shown if you haven't already joined -->
-          <button
-            class="button secondary"
-            type="button"
-            *ngIf="canJoin(workspace)"
-            [disabled]="joiningWorkspaceId === workspace.workspaceId"
-            (click)="joinWorkspace(workspace, $event)">
-            {{ joiningWorkspaceId === workspace.workspaceId ? 'Joining...' : 'Join Workspace' }}
-          </button>
         </article>
       </div>
 

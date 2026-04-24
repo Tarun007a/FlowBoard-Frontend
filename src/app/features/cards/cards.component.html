@@ -29,19 +29,42 @@
           <h2>{{ list.name }}</h2>
           <p>{{ cardsByList(list.listId).length }} cards</p>
         </div>
-        <button class="lane-menu" type="button" (click)="openCardModal(list.listId)">+</button>
+        <div class="lane-head-actions">
+          <button class="lane-menu" type="button" (click)="openCardModal(list.listId)">+</button>
+          <button
+            class="lane-delete"
+            type="button"
+            [disabled]="deletingListId === list.listId"
+            title="Delete list"
+            aria-label="Delete list"
+            (click)="deleteList(list, $event)">
+            🗑
+          </button>
+        </div>
       </header>
 
       <div class="lane-cards">
         <!-- Each card is draggable to move it between lists -->
         <article
           class="task-card"
+          [class.task-card-done]="isCardDone(card)"
           *ngFor="let card of cardsByList(list.listId)"
           draggable="true"
           (dragstart)="startDrag(card.cardId)"
           (click)="openCardDetail(card)">
 
-          <h3>{{ card.title }}</h3>
+          <div class="task-title-row">
+            <button
+              class="done-toggle"
+              type="button"
+              [class.checked]="isCardDone(card)"
+              [disabled]="togglingCardId === card.cardId"
+              [attr.aria-label]="isCardDone(card) ? 'Mark task as not done' : 'Mark task as done'"
+              (click)="toggleCardDone(card, $event)">
+              {{ isCardDone(card) ? '✓' : '' }}
+            </button>
+            <h3 [class.done-title]="isCardDone(card)">{{ card.title }}</h3>
+          </div>
           <p *ngIf="card.description">{{ card.description }}</p>
 
           <div class="card-meta-row" *ngIf="card.assigneeId || card.dueDate">
@@ -140,7 +163,7 @@
           </select>
         </div>
         <div class="field">
-          <label>Assignee ID</label>
+          <label>Assignee User ID</label>
           <input type="number" formControlName="assigneeId" placeholder="Optional" />
         </div>
         <div class="field">
@@ -224,4 +247,5 @@
   [session]="session"
   [assigneeName]="selectedCard.assigneeId ? assigneeName(selectedCard.assigneeId) : null"
   (closed)="closeCardDetail()"
-  (requestEdit)="openEditFromDetail($event)" />
+  (requestEdit)="openEditFromDetail($event)"
+  (requestDelete)="deleteCardFromDetail($event)" />

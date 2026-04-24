@@ -9,6 +9,7 @@ import {
   SignupRequest,
   UserDto
 } from '../models/auth.models';
+import { isAdminRole } from '../utils/admin.utils';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -38,6 +39,10 @@ export class AuthService {
 
   signup(request: SignupRequest): Observable<UserDto> {
     return this.api.post<UserDto>('/api/v1/auth/signup', request);
+  }
+
+  registerAdmin(request: SignupRequest): Observable<UserDto> {
+    return this.api.post<UserDto>('/api/v1/auth/register-admin', request);
   }
 
   verify(token: string): Observable<string> {
@@ -72,5 +77,13 @@ export class AuthService {
   logout(): void {
     this.profileState.clear();
     this.authStore.clear();
+  }
+
+  currentRole(): string {
+    return this.authStore.snapshot()?.role ?? '';
+  }
+
+  resolvePostLoginRoute(): string {
+    return isAdminRole(this.currentRole()) ? '/admin/dashboard' : '/workspaces';
   }
 }

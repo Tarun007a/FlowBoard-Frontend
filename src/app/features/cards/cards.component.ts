@@ -3,10 +3,10 @@ import { Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { catchError, map, of } from 'rxjs';
+import { catchError, finalize, map, of, switchMap } from 'rxjs';
 import { AuthSession, UserDto } from '../../core/models/auth.models';
 import { BoardResponse } from '../../core/models/board.models';
-import { CardResponse, Priority, Status } from '../../core/models/card.models';
+import { CardResponse, CardUpdateRequest, Priority, Status } from '../../core/models/card.models';
 import { TaskListResponse } from '../../core/models/list.models';
 import { AuthStoreService } from '../../core/services/auth-store.service';
 import { BoardService } from '../../core/services/board.service';
@@ -14,6 +14,7 @@ import { CardService } from '../../core/services/card.service';
 import { ListService } from '../../core/services/list.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { UserService } from '../../core/services/user.service';
+import { isAdminRole } from '../../core/utils/admin.utils';
 import { readErrorMessage } from '../../core/utils/error.utils';
 import { CardDetailComponent } from './card-detail.component';
 
@@ -52,6 +53,8 @@ export class CardsComponent implements OnInit {
   showMembersPanel = false;
 
   draggedCardId: number | null = null;
+  togglingCardId: number | null = null;
+  deletingListId: number | null = null;
   memberLoadError = '';
   error = '';
 
@@ -83,7 +86,7 @@ export class CardsComponent implements OnInit {
   // Only board owners and admins can manage members
   get canManageMembers(): boolean {
     if (!this.board || !this.session) return false;
-    return this.session.role === 'ADMIN' || this.board.createdById === this.session.userId;
+    return isAdminRole(this.session.role) || this.board.createdById === this.session.userId;
   }
 
   ngOnInit(): void {
@@ -163,15 +166,31 @@ export class CardsComponent implements OnInit {
 
     // If cardId is set, we're updating an existing card
     if (cardId) {
-      this.cardService.update(cardId, {
-        title: value.title,
-        description: value.description,
-        priority: value.priority,
-        status: value.status,
-        dueDate: this.normalizeDate(value.dueDate),
-        startDate: this.normalizeDate(value.startDate)
-      }).subscribe({
-        next: () => { this.notify.success('Card updated'); this.closeModals(); },
+      const existing = this.cards.find((item) => item.cardId === cardId) ?? null;
+      const payload = this.buildUpdateRequest(value, existing);
+      const nextAssigneeId = this.normalizeAssigneeId(value.assigneeId);
+      const assigneeChanged = nextAssigneeId !== (existing?.assigneeId ?? null);
+
+      this.cardService.update(cardId, payload).pipe(
+        switchMap((updatedCard) => {
+          if (!assigneeChanged) {
+            return of(updatedCard);
+          }
+
+          if (nextAssigneeId === null) {
+            // No API currently supports unassigning through update flow.
+            console.log('Assignee cleared in form, but backend does not expose unassign endpoint.');
+            return of(updatedCard);
+          }
+
+          return this.cardService.assign(cardId, nextAssigneeId);
+        })
+      ).subscribe({
+        next: (updatedCard) => {
+          this.syncUpdatedCard(updatedCard);
+          console.log('Card updated', updatedCard.cardId);
+          this.closeModals();
+        },
         error: (err) => { const message = readErrorMessage(err); this.error = message; this.notify.error(message); }
       });
       return;
@@ -191,7 +210,7 @@ export class CardsComponent implements OnInit {
     this.cardService.create({
       listId, boardId: this.boardId,
       title: value.title, description: value.description,
-      priority: value.priority, status: value.status,
+      priority: value.priority, status: value.status ?? 'TO_DO',
       dueDate: this.normalizeDate(value.dueDate), startDate: this.normalizeDate(value.startDate),
       assigneeId
     }).subscribe({
@@ -201,7 +220,7 @@ export class CardsComponent implements OnInit {
   }
 
   addBoardMember(): void {
-    if (!this.canManageMembers) { this.notifyPermissionDenied(); return; }
+    if (!this.canManageMembers) return;
     if (this.memberForm.invalid) { this.memberForm.markAllAsTouched(); return; }
 
     const userId = this.memberForm.getRawValue().userId;
@@ -214,9 +233,9 @@ export class CardsComponent implements OnInit {
   }
 
   removeBoardMember(userId: number): void {
-    if (!this.canManageMembers) { this.notifyPermissionDenied(); return; }
+    if (!this.canManageMembers) return;
     this.boardService.removeMember(this.boardId, userId).subscribe({
-      next: () => this.notify.info('Member removed'),
+      next: () => void 0,
       error: (err) => this.notify.error(readErrorMessage(err))
     });
   }
@@ -245,6 +264,17 @@ export class CardsComponent implements OnInit {
     this.editCard(card);
   }
 
+  deleteCardFromDetail(card: CardResponse): void {
+    this.cardService.delete(card.cardId).subscribe({
+      next: () => {
+        this.closeCardDetail();
+      },
+      error: (err) => {
+        console.error(err);
+      }
+    });
+  }
+
   editCard(card: CardResponse): void {
     this.showCardModal = true;
     this.showListModal = false;
@@ -267,9 +297,54 @@ export class CardsComponent implements OnInit {
     if (!this.draggedCardId) return;
     const targetCount = this.cardsByList(targetListId).length;
     this.cardService.move(this.draggedCardId, targetListId, targetCount).subscribe({
-      next: () => { this.notify.info('Card moved'); this.draggedCardId = null; },
+      next: () => { this.draggedCardId = null; },
       error: (err) => { const message = readErrorMessage(err); this.error = message; this.notify.error(message); }
     });
+  }
+
+  deleteList(list: TaskListResponse, event: Event): void {
+    event.stopPropagation();
+    if (this.deletingListId !== null) return;
+
+    const confirmed = window.confirm('Delete this list?');
+    if (!confirmed) return;
+
+    this.error = '';
+    this.deletingListId = list.listId;
+
+    this.listService.delete(list.listId)
+      .pipe(finalize(() => { this.deletingListId = null; }))
+      .subscribe({
+        next: () => {
+          console.log('List deleted', list.listId);
+          if (this.selectedCard?.listId === list.listId) {
+            this.closeCardDetail();
+          }
+        },
+        error: (err) => {
+          console.error(err);
+          this.error = 'Unable to delete list. Remove cards first.';
+        }
+      });
+  }
+
+  isCardDone(card: CardResponse): boolean {
+    return card.status === 'DONE';
+  }
+
+  toggleCardDone(card: CardResponse, event: Event): void {
+    event.stopPropagation();
+    if (this.togglingCardId !== null) return;
+
+    const nextStatus: Status = this.isCardDone(card) ? 'TO_DO' : 'DONE';
+    this.togglingCardId = card.cardId;
+
+    this.cardService.updateStatus(card.cardId, nextStatus)
+      .pipe(finalize(() => { this.togglingCardId = null; }))
+      .subscribe({
+        next: (updatedCard) => this.syncUpdatedCard(updatedCard),
+        error: (err) => { const message = readErrorMessage(err); this.error = message; this.notify.error(message); }
+      });
   }
 
   assigneeName(assigneeId: number): string {
@@ -359,7 +434,14 @@ export class CardsComponent implements OnInit {
 
   private normalizeDate(value: string): string | null {
     const trimmed = value.trim();
-    return trimmed ? trimmed : null;
+    if (!trimmed) return null;
+
+    // datetime-local values may omit seconds; ensure backend LocalDateTime parsing is consistent.
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(trimmed)) {
+      return `${trimmed}:00`;
+    }
+
+    return trimmed;
   }
 
   // Keeps the selectedCard in sync when the cards array is updated
@@ -370,8 +452,36 @@ export class CardsComponent implements OnInit {
     if (!latest) this.selectedCardId = null;
   }
 
-  private notifyPermissionDenied(): void {
-    this.notify.error('You do not have permission for this action');
+  private syncUpdatedCard(updatedCard: CardResponse): void {
+    if (this.selectedCardId === updatedCard.cardId) {
+      this.selectedCard = updatedCard;
+    }
+  }
+
+  private buildUpdateRequest(
+    value: ReturnType<CardsComponent['cardForm']['getRawValue']>,
+    existing: CardResponse | null
+  ): CardUpdateRequest {
+    return {
+      title: value.title.trim(),
+      description: value.description.trim(),
+      priority: value.priority,
+      status: value.status ?? existing?.status ?? 'TO_DO',
+      dueDate: this.normalizeDate(value.dueDate),
+      startDate: this.normalizeDate(value.startDate)
+    };
+  }
+
+  private normalizeAssigneeId(value: number | null): number | null {
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+      return null;
+    }
+
+    if (value <= 0) {
+      return null;
+    }
+
+    return Math.trunc(value);
   }
 
   private setCardFormEditMode(isEditing: boolean): void {
@@ -380,7 +490,7 @@ export class CardsComponent implements OnInit {
 
     if (isEditing) {
       listIdControl.disable({ emitEvent: false });
-      assigneeControl.disable({ emitEvent: false });
+      assigneeControl.enable({ emitEvent: false });
       return;
     }
 

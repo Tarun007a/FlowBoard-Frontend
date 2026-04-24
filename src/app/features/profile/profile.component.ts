@@ -30,7 +30,6 @@ export class ProfileComponent implements OnInit {
   editing = false;
   saving = false;
   error = '';
-  private loadedToastShown = false;
 
   form = this.fb.nonNullable.group({
     fullName: ['', [Validators.required, Validators.minLength(3)]],
@@ -133,12 +132,7 @@ export class ProfileComponent implements OnInit {
     this.error = '';
 
     this.profileState.loadProfile().subscribe({
-      next: () => {
-        if (!this.loadedToastShown) {
-          this.notify.info('Profile loaded');
-          this.loadedToastShown = true;
-        }
-      },
+      next: () => void 0,
       error: (err) => {
         const message = readErrorMessage(err);
         this.error = message;
