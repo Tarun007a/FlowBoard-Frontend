@@ -16,10 +16,10 @@ interface StatusSlice {
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="chart-shell">
+    <div class="chart-shell" [class.compact-chart]="compact">
       <canvas #canvas aria-label="Card status distribution" role="img"></canvas>
     </div>
-    <div class="chart-legend">
+    <div class="chart-legend" *ngIf="showLegend">
       <span *ngFor="let item of slices" class="legend-item">
         <i [style.background]="item.color"></i>
         {{ item.label }} <strong>{{ item.value }}</strong>
@@ -37,6 +37,15 @@ interface StatusSlice {
     canvas {
       max-width: 190px;
       max-height: 190px;
+    }
+
+    .compact-chart {
+      height: 168px;
+    }
+
+    .compact-chart canvas {
+      max-width: 168px;
+      max-height: 168px;
     }
 
     .chart-legend {
@@ -69,6 +78,8 @@ interface StatusSlice {
 })
 export class StatusDoughnutComponent implements AfterViewInit, OnChanges, OnDestroy {
   @Input({ required: true }) summary!: CardStatusSummaryDto | null;
+  @Input() showLegend = true;
+  @Input() compact = false;
   @ViewChild('canvas') private canvas?: ElementRef<HTMLCanvasElement>;
 
   private chart: Chart<'doughnut'> | null = null;

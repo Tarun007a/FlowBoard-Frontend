@@ -97,6 +97,7 @@ export class BoardAnalyticsComponent implements OnInit {
 
   private loadCards(): void {
     this.cardsLoading = true;
+    this.cards = [];
     this.analyticsService.getCards({
       workspaceId: this.workspaceId,
       boardId: this.boardId,

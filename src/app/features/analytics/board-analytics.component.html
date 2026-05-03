@@ -36,7 +36,7 @@
           <span>Position {{ list.position }}</span>
         </div>
       </div>
-      <ng-template #noLists><div class="analytics-empty">No lists found.</div></ng-template>
+      <ng-template #noLists><div class="analytics-empty">No analytics available</div></ng-template>
     </section>
   </div>
 
@@ -76,13 +76,27 @@
       </article>
     </div>
     <ng-template #noCards>
-      <div class="analytics-empty">{{ cardsLoading ? 'Loading cards...' : 'No cards match these filters.' }}</div>
+      <div *ngIf="cardsLoading; else noFilteredCards" class="loading-box compact-loading">
+        <span class="loading-spinner" aria-hidden="true"></span>
+        Generating analytics for you... this may take some time
+      </div>
+      <ng-template #noFilteredCards>
+        <div class="analytics-empty">No analytics available</div>
+      </ng-template>
     </ng-template>
   </section>
 </div>
 
 <ng-template #boardState>
   <div class="analytics-page">
-    <section class="analytics-section panel analytics-empty">{{ loading ? 'Loading board analytics...' : 'Board analytics unavailable.' }}</section>
+    <section class="analytics-section panel">
+      <div *ngIf="loading; else noBoardAnalytics" class="loading-box">
+        <span class="loading-spinner" aria-hidden="true"></span>
+        Generating analytics for you... this may take some time
+      </div>
+      <ng-template #noBoardAnalytics>
+        <div class="analytics-empty">No analytics available</div>
+      </ng-template>
+    </section>
   </div>
 </ng-template>

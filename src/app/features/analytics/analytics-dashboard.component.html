@@ -23,31 +23,26 @@
 
     <div class="analytics-grid" *ngIf="!loading && workspaces.length; else overviewEmpty">
       <article class="analytics-card workspace-card" *ngFor="let workspace of workspaces; trackBy: trackByWorkspaceId" (click)="openWorkspace(workspace.workspaceId)">
-        <header class="analytics-card-head">
-          <div class="workspace-logo" *ngIf="workspace.logoUrl; else workspaceInitial">
-            <img [src]="workspace.logoUrl" [alt]="workspace.name" />
-          </div>
-          <ng-template #workspaceInitial>
-            <div class="workspace-logo">{{ workspace.name.charAt(0).toUpperCase() }}</div>
-          </ng-template>
-          <div>
-            <h3>{{ workspace.name }}</h3>
-            <span class="soft-pill">{{ workspace.isOwner ? 'Owner' : 'Member' }}</span>
-          </div>
+        <header class="workspace-card-top">
+          <h3>{{ workspace.name }}</h3>
+          <span class="owner-star" *ngIf="workspace.isOwner" title="Owner" aria-label="Owner">&#9733;</span>
         </header>
 
-        <div class="metric-row">
-          <div class="metric-box">
-            <span>Total boards</span>
+        <div class="workspace-stat-row">
+          <div class="workspace-stat">
+            <span>Boards</span>
             <strong>{{ workspace.totalBoards }}</strong>
           </div>
-          <div class="metric-box">
-            <span>Total members</span>
+          <div class="workspace-stat">
+            <span>Members</span>
             <strong>{{ workspace.totalMembers }}</strong>
           </div>
         </div>
 
-        <app-status-doughnut [summary]="workspace.cardsSummary"></app-status-doughnut>
+        <div class="workspace-chart-block">
+          <span class="chart-label">Task Status Distribution</span>
+          <app-status-doughnut [summary]="workspace.cardsSummary" [showLegend]="false" [compact]="true"></app-status-doughnut>
+        </div>
       </article>
     </div>
 
