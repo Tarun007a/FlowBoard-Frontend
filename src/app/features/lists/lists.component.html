@@ -14,7 +14,6 @@
           <div class="field"><label>List ID</label><input type="number" formControlName="listId" /></div>
           <div class="field"><label>Board ID</label><input type="number" formControlName="boardId" /></div>
           <div class="field"><label>Name</label><input type="text" formControlName="name" /></div>
-          <div class="field"><label>Color</label><input type="text" formControlName="color" /></div>
         </div>
         <div class="actions">
           <button class="button accent" type="submit">Save</button>
@@ -46,14 +45,11 @@
 
   <!-- Results panel -->
   <section class="panel section-card stack">
-    <p class="error" *ngIf="error">{{ error }}</p>
-    <p class="success" *ngIf="message">{{ message }}</p>
-
     <!-- Table of lists - only shows when there is data -->
     <table class="table" *ngIf="lists.length">
       <thead>
         <tr>
-          <th>ID</th><th>Board</th><th>Name</th><th>Position</th><th>Color</th><th>Archived</th>
+          <th>ID</th><th>Board</th><th>Name</th><th>Position</th><th>Archived</th>
         </tr>
       </thead>
       <tbody>
@@ -63,7 +59,6 @@
           <td>{{ item.boardId }}</td>
           <td>{{ item.name }}</td>
           <td>{{ item.position }}</td>
-          <td>{{ item.color }}</td>
           <td>{{ item.isArchived ? 'Yes' : 'No' }}</td>
         </tr>
       </tbody>

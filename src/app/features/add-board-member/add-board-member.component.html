@@ -14,9 +14,6 @@
         <label for="boardMemberUserId">User ID</label>
         <input id="boardMemberUserId" type="number" formControlName="userId" placeholder="Enter user id" />
       </div>
-
-      <p class="error" *ngIf="error">{{ error }}</p>
-
       <div class="actions">
         <button class="button accent" type="submit" [disabled]="submitting || form.invalid">
           {{ submitting ? 'Adding...' : 'Add Member' }}

@@ -16,16 +16,22 @@
   </section>
 
   <!-- Kanban board: horizontal scrolling columns -->
-  <section class="lane-scroller" *ngIf="orderedLists().length; else emptyListState">
+  <section
+    class="lane-scroller"
+    *ngIf="orderedLists().length; else emptyListState"
+    cdkDropList
+    cdkDropListOrientation="horizontal"
+    [cdkDropListData]="orderedLists()"
+    (cdkDropListDropped)="dropList($event)">
     <article
       class="lane"
       *ngFor="let list of orderedLists()"
+      cdkDrag
       [style.border-top-color]="list.color"
-      (dragover)="$event.preventDefault()"
-      (drop)="dropOnList(list.listId)">
+      [cdkDragData]="list">
 
       <header class="lane-head">
-        <div>
+        <div class="lane-drag-handle" cdkDragHandle>
           <h2>{{ list.name }}</h2>
           <p>{{ cardsByList(list.listId).length }} cards</p>
         </div>
@@ -43,14 +49,21 @@
         </div>
       </header>
 
-      <div class="lane-cards">
+      <div
+        class="lane-cards"
+        cdkDropList
+        cdkDropListOrientation="vertical"
+        [id]="cardDropListId(list.listId)"
+        [cdkDropListData]="cardsByList(list.listId)"
+        [cdkDropListConnectedTo]="cardDropListIds()"
+        (cdkDropListDropped)="dropCard($event)">
         <!-- Each card is draggable to move it between lists -->
         <article
           class="task-card"
           [class.task-card-done]="isCardDone(card)"
           *ngFor="let card of cardsByList(list.listId)"
-          draggable="true"
-          (dragstart)="startDrag(card.cardId)"
+          cdkDrag
+          [cdkDragData]="card"
           (click)="openCardDetail(card)">
 
           <div class="task-title-row">
@@ -96,7 +109,6 @@
     </section>
   </ng-template>
 
-  <p class="error" *ngIf="error">{{ error }}</p>
 </div>
 
 <!-- Loading state -->
@@ -123,10 +135,6 @@
       <div class="field">
         <label>List Name</label>
         <input type="text" formControlName="name" placeholder="To Do" />
-      </div>
-      <div class="field">
-        <label>Color</label>
-        <input type="text" formControlName="color" placeholder="#7fb4f0" />
       </div>
       <div class="actions">
         <button class="button accent" type="submit" [disabled]="listForm.invalid">Create List</button>
@@ -205,7 +213,6 @@
       <div>
         <div class="board-chip dark-chip">Members</div>
         <h2>Board members</h2>
-        <p class="muted" *ngIf="memberLoadError">{{ memberLoadError }}</p>
       </div>
       <button class="button secondary" type="button" (click)="closeMembersPanel()">Close</button>
     </header>

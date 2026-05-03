@@ -5,7 +5,7 @@ import { landingGuard } from './core/guards/landing.guard';
 import { ShellComponent } from './layout/shell.component';
 import { AuthShellComponent } from './features/auth/auth-shell.component';
 import { ResetPasswordComponent } from './features/auth/reset-password.component';
-import { VerifyAccountComponent } from './features/auth/verify-account.component';
+import { AuthVerifyComponent } from './features/auth/auth-verify.component';
 import { OAuthSuccessComponent } from './features/auth/oauth-success.component';
 import { WorkspacesComponent } from './features/workspaces/workspaces.component';
 import { CardsComponent } from './features/cards/cards.component';
@@ -28,7 +28,8 @@ export const routes: Routes = [
 	{ path: 'signup', component: AuthShellComponent, canActivate: [guestGuard] },
 	{ path: 'register-admin', component: RegisterAdminComponent, canActivate: [guestGuard] },
 	{ path: 'reset-password', component: ResetPasswordComponent, canActivate: [guestGuard] },
-	{ path: 'verify/:token', component: VerifyAccountComponent },
+	{ path: 'auth/verify/:token', component: AuthVerifyComponent },
+	{ path: 'verify/:token', redirectTo: 'auth/verify/:token', pathMatch: 'full' },
 	{ path: 'oauth-success', component: OAuthSuccessComponent },
 	{ path: 'admin', pathMatch: 'full', redirectTo: 'admin/dashboard' },
 	{
@@ -42,6 +43,22 @@ export const routes: Routes = [
 			{ path: 'subscription/plans', component: SubscriptionPlansComponent },
 			{ path: 'subscription/my', component: MySubscriptionComponent },
 			{ path: 'profile', component: ProfileComponent },
+			{
+				path: 'analytics',
+				loadComponent: () => import('./features/analytics/analytics-dashboard.component').then((m) => m.AnalyticsDashboardComponent)
+			},
+			{
+				path: 'analytics/workspace/:id',
+				loadComponent: () => import('./features/analytics/workspace-analytics.component').then((m) => m.WorkspaceAnalyticsComponent)
+			},
+			{
+				path: 'analytics/member/:userId',
+				loadComponent: () => import('./features/analytics/member-analytics.component').then((m) => m.MemberAnalyticsComponent)
+			},
+			{
+				path: 'analytics/board/:boardId',
+				loadComponent: () => import('./features/analytics/board-analytics.component').then((m) => m.BoardAnalyticsComponent)
+			},
 			{ path: 'workspace/:id', component: WorkspaceDetailComponent },
 			{ path: 'workspace/:id/boards', component: WorkspaceDetailComponent },
 			{ path: 'board/:id', component: CardsComponent },

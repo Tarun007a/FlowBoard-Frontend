@@ -1,0 +1,45 @@
+<div class="analytics-page" *ngIf="member; else memberState">
+  <section class="analytics-hero panel member-hero">
+    <div class="member-avatar" *ngIf="member.profilePicture; else avatarInitial">
+      <img [src]="member.profilePicture" [alt]="member.name" />
+    </div>
+    <ng-template #avatarInitial>
+      <div class="member-avatar">{{ avatarFallback() }}</div>
+    </ng-template>
+
+    <div>
+      <span class="analytics-kicker">Member Analytics</span>
+      <h1>{{ member.name }}</h1>
+      <p class="muted">{{ member.email }}</p>
+    </div>
+
+    <div class="hero-stat-cluster">
+      <div><span>Pending tasks</span><strong>{{ member.totalPending }}</strong></div>
+    </div>
+  </section>
+
+  <section class="analytics-section panel">
+    <header class="analytics-section-head">
+      <div>
+        <h2>Status Distribution</h2>
+        <p class="muted">{{ member.cardsSummary.total }} assigned cards</p>
+      </div>
+      <span class="soft-pill">{{ member.cardsSummary.completionRate }}% done</span>
+    </header>
+    <app-status-doughnut [summary]="member.cardsSummary"></app-status-doughnut>
+  </section>
+</div>
+
+<ng-template #memberState>
+  <div class="analytics-page">
+    <section class="analytics-section panel">
+      <div *ngIf="loading; else noMemberAnalytics" class="loading-box">
+        <span class="loading-spinner" aria-hidden="true"></span>
+        Generating analytics for you... this may take some time
+      </div>
+      <ng-template #noMemberAnalytics>
+        <div class="analytics-empty">No analytics available</div>
+      </ng-template>
+    </section>
+  </div>
+</ng-template>

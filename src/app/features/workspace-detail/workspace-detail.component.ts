@@ -7,15 +7,13 @@ import { ActivatedRoute, NavigationCancel, NavigationError, Router, RouterLink }
 import { catchError, combineLatest, finalize, map, of } from 'rxjs';
 import { AuthSession, UserDto } from '../../core/models/auth.models';
 import { ApiPage } from '../../core/models/api-page.model';
-import { BoardRequest, BoardResponse } from '../../core/models/board.models';
+import { BoardRequest, BoardResponse, BoardUpdateRequest } from '../../core/models/board.models';
 import { Visibility, WorkspaceMemberResponse, WorkspaceRequest, WorkspaceResponse } from '../../core/models/workspace.models';
 import { AuthStoreService } from '../../core/services/auth-store.service';
 import { BoardService } from '../../core/services/board.service';
-import { NotificationService } from '../../core/services/notification.service';
 import { UserService } from '../../core/services/user.service';
 import { WorkspaceService } from '../../core/services/workspace.service';
 import { isAdminRole } from '../../core/utils/admin.utils';
-import { readErrorMessage } from '../../core/utils/error.utils';
 
 // Stores the member count for each board card
 interface BoardCardMeta {
@@ -37,7 +35,6 @@ export class WorkspaceDetailComponent implements OnInit {
   private readonly workspaceService = inject(WorkspaceService);
   private readonly boardService = inject(BoardService);
   private readonly userService = inject(UserService);
-  private readonly notify = inject(NotificationService);
   // destroyRef automatically unsubscribes observables when the component is destroyed
   private readonly destroyRef = inject(DestroyRef);
 
@@ -45,15 +42,19 @@ export class WorkspaceDetailComponent implements OnInit {
   readonly defaultBoardForm = {
     name: '',
     description: '',
-    visibility: 'PUBLIC' as Visibility,
-    background: '#d9eaff'
+    visibility: 'PUBLIC' as Visibility
   };
 
   boardForm = this.fb.nonNullable.group({
     name: ['', [Validators.required, Validators.minLength(2)]],
     description: ['', [Validators.required]],
-    visibility: ['PUBLIC' as Visibility, [Validators.required]],
-    background: ['#d9eaff']
+    visibility: ['PUBLIC' as Visibility, [Validators.required]]
+  });
+
+  boardUpdateForm = this.fb.nonNullable.group({
+    name: ['', [Validators.required, Validators.minLength(2)]],
+    description: ['', [Validators.required]],
+    visibility: ['PUBLIC' as Visibility, [Validators.required]]
   });
 
   memberForm = this.fb.nonNullable.group({
@@ -63,8 +64,7 @@ export class WorkspaceDetailComponent implements OnInit {
   workspaceForm = this.fb.nonNullable.group({
     name: ['', [Validators.required, Validators.minLength(2)]],
     description: ['', [Validators.required, Validators.minLength(2)]],
-    visibility: ['PUBLIC' as Visibility, [Validators.required]],
-    logoUrl: ['', [Validators.required, Validators.minLength(2)]]
+    visibility: ['PUBLIC' as Visibility, [Validators.required]]
   });
 
   workspaceId = 0;
@@ -78,13 +78,15 @@ export class WorkspaceDetailComponent implements OnInit {
 
   showUpdateModal = false;
   showBoardModal = false;
+  showBoardUpdateModal = false;
+  selectedBoard: BoardResponse | null = null;
   showMembersPanel = false;
   openingBoardId: number | null = null;
   loading = false;
+  updatingBoard = false;
   addingMember = false;
   loadingMembers = false;
   removingMemberUserId: number | null = null;
-  error = '';
 
   // Only workspace owners and admins can manage the workspace
   get canManageWorkspace(): boolean {
@@ -111,7 +113,7 @@ export class WorkspaceDetailComponent implements OnInit {
       });
 
     if (!this.workspaceId) {
-      this.error = 'Invalid workspace id';
+      console.error('Invalid workspace id');
       return;
     }
 
@@ -125,11 +127,10 @@ export class WorkspaceDetailComponent implements OnInit {
     if (!this.workspace) return;
 
     // Pre-fill the form with current workspace values
-    this.workspaceForm.reset({
+    this.workspaceForm.patchValue({
       name: this.workspace.name,
       description: this.workspace.description,
-      visibility: this.workspace.visibility,
-      logoUrl: this.workspace.logoUrl || ''
+      visibility: this.workspace.visibility
     });
     this.showUpdateModal = true;
   }
@@ -141,21 +142,23 @@ export class WorkspaceDetailComponent implements OnInit {
     if (this.workspaceForm.invalid) { this.workspaceForm.markAllAsTouched(); return; }
 
     this.loading = true;
-    const payload = this.workspaceForm.getRawValue() as WorkspaceRequest;
+    const value = this.workspaceForm.getRawValue();
+    const payload: WorkspaceRequest = {
+      name: value.name,
+      description: value.description,
+      visibility: value.visibility,
+      logoUrl: this.workspace?.logoUrl?.trim() || 'default-logo'
+    };
 
     this.workspaceService.updateWorkspace(this.workspaceId, payload)
       .pipe(finalize(() => (this.loading = false)))
       .subscribe({
         next: (workspace) => {
           this.workspace = workspace;
-          this.notify.success('Workspace updated successfully');
           this.showUpdateModal = false;
+          console.log('Updated successfully');
         },
-        error: (err) => {
-          const message = readErrorMessage(err);
-          this.error = message;
-          this.notify.error(message);
-        }
+        error: (err) => console.error(err)
       });
   }
 
@@ -167,24 +170,84 @@ export class WorkspaceDetailComponent implements OnInit {
 
     this.workspaceService.deleteWorkspace(this.workspaceId).subscribe({
       next: () => {
-        this.notify.success('Workspace deleted');
         this.router.navigate(['/workspaces']);
       },
-      error: (err) => {
-        const message = readErrorMessage(err);
-        this.error = message;
-        this.notify.error(message);
-      }
+      error: (err) => console.error(err)
     });
   }
 
   openBoardModal(): void {
     if (!this.canManageWorkspace) return;
-    this.error = '';
     this.showBoardModal = true;
   }
 
   closeBoardModal(): void { this.showBoardModal = false; }
+
+  openBoardFromCard(boardId: number): void {
+    this.markBoardOpening(boardId);
+    this.router.navigate(['/board', boardId]).catch((err) => {
+      this.openingBoardId = null;
+      console.error(err);
+    });
+  }
+
+  onBoardCardKeydown(event: KeyboardEvent, boardId: number): void {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    event.preventDefault();
+    this.openBoardFromCard(boardId);
+  }
+
+  canEditBoard(board: BoardResponse): boolean {
+    if (!this.session) return false;
+    return board.createdById === this.session.userId || this.workspace?.ownerId === this.session.userId;
+  }
+
+  openBoardUpdateModal(board: BoardResponse, event?: Event): void {
+    event?.preventDefault();
+    event?.stopPropagation();
+    if (!this.canEditBoard(board)) return;
+
+    this.selectedBoard = board;
+    this.boardUpdateForm.patchValue({
+      name: board.name,
+      description: board.description,
+      visibility: board.visibility
+    });
+    this.showBoardUpdateModal = true;
+  }
+
+  closeBoardUpdateModal(): void {
+    this.showBoardUpdateModal = false;
+    this.selectedBoard = null;
+  }
+
+  updateBoard(): void {
+    if (!this.selectedBoard || !this.canEditBoard(this.selectedBoard)) return;
+    if (this.boardUpdateForm.invalid) { this.boardUpdateForm.markAllAsTouched(); return; }
+
+    this.updatingBoard = true;
+    const value = this.boardUpdateForm.getRawValue();
+    const payload: BoardUpdateRequest = {
+      workspaceId: this.selectedBoard.workspaceId,
+      name: value.name,
+      description: value.description,
+      background: this.selectedBoard.background || '',
+      visibility: value.visibility
+    };
+
+    this.boardService.update(this.selectedBoard.boardId, payload)
+      .pipe(finalize(() => (this.updatingBoard = false)))
+      .subscribe({
+        next: (board) => {
+          this.boards = this.boards.map((item) => (item.boardId === board.boardId ? board : item));
+          this.showBoardUpdateModal = false;
+          this.selectedBoard = null;
+          this.resolveBoardMeta(board);
+          console.log('Updated successfully');
+        },
+        error: (err) => console.error(err)
+      });
+  }
 
   // Called when user clicks a board card - marks it as "opening" to show a loading state
   markBoardOpening(boardId: number): void {
@@ -204,31 +267,24 @@ export class WorkspaceDetailComponent implements OnInit {
     if (this.boardForm.invalid) { this.boardForm.markAllAsTouched(); return; }
 
     this.loading = true;
-    this.error = '';
 
     const value = this.boardForm.getRawValue();
-    const payload: BoardRequest = {
+    const payload = {
       workspaceId: this.workspaceId,
       name: value.name,
       description: value.description,
-      background: value.background,
       visibility: value.visibility
-    };
+    } as BoardRequest;
 
     this.boardService.create(payload)
       .pipe(finalize(() => (this.loading = false)))
       .subscribe({
         next: (board) => {
-          this.notify.success('Board created');
           this.boardForm.reset(this.defaultBoardForm);
           this.showBoardModal = false;
           this.resolveBoardMeta(board);
         },
-        error: (err) => {
-          const message = readErrorMessage(err);
-          this.error = message;
-          this.notify.error(message);
-        }
+        error: (err) => console.error(err)
       });
   }
 
@@ -244,15 +300,10 @@ export class WorkspaceDetailComponent implements OnInit {
       .pipe(finalize(() => (this.addingMember = false)))
       .subscribe({
         next: () => {
-          this.notify.success('Member added');
           this.memberForm.reset({ userId: null });
           this.loadWorkspaceMembers();
         },
-        error: (err) => {
-          const message = readErrorMessage(err);
-          this.error = message;
-          this.notify.error(message);
-        }
+        error: (err) => console.error(err)
       });
   }
 
@@ -302,14 +353,11 @@ export class WorkspaceDetailComponent implements OnInit {
       .pipe(finalize(() => (this.removingMemberUserId = null)))
       .subscribe({
         next: () => {
-          this.notify.success('Member removed successfully');
           this.loadWorkspaceMembers();
         },
         error: (err) => {
           if (this.isNoAccessError(err)) return;
-          const message = readErrorMessage(err);
-          this.error = message;
-          this.notify.error(message);
+          console.error(err);
         }
       });
   }
@@ -338,10 +386,8 @@ export class WorkspaceDetailComponent implements OnInit {
         this.workspace = workspace;
       },
       error: (err) => {
-        if (this.isNoAccessError(err)) { this.error = 'Unable to load workspace details.'; return; }
-        const message = readErrorMessage(err) || 'Failed to load workspace';
-        this.error = message;
-        this.notify.error('Failed to load workspace');
+        if (this.isNoAccessError(err)) return;
+        console.error(err);
       }
     });
   }
@@ -361,9 +407,7 @@ export class WorkspaceDetailComponent implements OnInit {
           this.workspaceMembers = [];
           this.memberCount = 0;
           if (this.isNoAccessError(err)) return;
-          const message = readErrorMessage(err);
-          this.error = message;
-          this.notify.error(message);
+          console.error(err);
         }
       });
   }
@@ -401,10 +445,10 @@ export class WorkspaceDetailComponent implements OnInit {
         // Fallback: load public boards if no member/private boards found
         this.boardService.getPublicBoards(this.workspaceId, 0, 100).subscribe({
           next: (page) => this.setBoards(page.content),
-          error: (err) => { const message = readErrorMessage(err); this.error = message; this.notify.error(message); }
+          error: (err) => console.error(err)
         });
       },
-      error: (err) => { const message = readErrorMessage(err); this.error = message; this.notify.error(message); }
+      error: (err) => console.error(err)
     });
   }
 

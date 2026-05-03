@@ -6,22 +6,20 @@ import { AuthSession, UserDto } from '../../core/models/auth.models';
 import { CardResponse } from '../../core/models/card.models';
 import { AttachmentService } from '../../core/services/attachment.service';
 import { CommentService } from '../../core/services/comment.service';
-import { NotificationService } from '../../core/services/notification.service';
 import { UserService } from '../../core/services/user.service';
 import { isAdminRole } from '../../core/utils/admin.utils';
-import { readErrorMessage } from '../../core/utils/error.utils';
+import { CardActivityComponent } from './card-activity.component';
 
 @Component({
   selector: 'app-card-detail',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, CardActivityComponent],
   templateUrl: './card-detail.component.html',
   styleUrl: './card-detail.component.css'
 })
 export class CardDetailComponent implements OnChanges {
   private readonly attachmentService = inject(AttachmentService);
   private readonly commentService = inject(CommentService);
-  private readonly notify = inject(NotificationService);
   private readonly userService = inject(UserService);
   private readonly fb = inject(FormBuilder);
 
@@ -42,8 +40,7 @@ export class CardDetailComponent implements OnChanges {
   loadingComments = false;
   uploadingAttachment = false;
   postingComment = false;
-  attachmentError = '';
-  commentError = '';
+  showActivity = false;
   authorMap: Record<number, UserDto> = {};  // key: userId → user profile (for comment author names)
 
   editingCommentId: number | null = null;
@@ -59,12 +56,21 @@ export class CardDetailComponent implements OnChanges {
       this.selectedFile = null;
       this.commentForm.reset({ content: '' });
       this.cancelEditComment();
+      this.closeActivity();
       this.loadAttachments();
       this.loadComments();
     }
   }
 
   close(): void { this.closed.emit(); }
+
+  openActivity(): void {
+    this.showActivity = true;
+  }
+
+  closeActivity(): void {
+    this.showActivity = false;
+  }
 
   deleteCard(): void {
     const confirmed = confirm('Are you sure you want to delete this card?');
@@ -78,12 +84,10 @@ export class CardDetailComponent implements OnChanges {
   }
 
   uploadAttachment(): void {
-    this.attachmentError = '';
     if (!this.selectedFile) return;
 
     if (!this.session?.userId) {
-      this.attachmentError = 'Unable to identify logged-in user.';
-      this.notify.error(this.attachmentError);
+      console.error('Unable to identify logged-in user.');
       return;
     }
 
@@ -94,13 +98,10 @@ export class CardDetailComponent implements OnChanges {
         this.sortAttachments();
         this.selectedFile = null;
         this.uploadingAttachment = false;
-        this.notify.success('Attachment uploaded successfully');
       },
       error: (err) => {
-        const message = readErrorMessage(err);
-        this.attachmentError = message;
         this.uploadingAttachment = false;
-        this.notify.error(message || 'Failed to upload attachment');
+        console.error(err);
       }
     });
   }
@@ -109,9 +110,8 @@ export class CardDetailComponent implements OnChanges {
     this.attachmentService.delete(item.attachmentId).subscribe({
       next: () => {
         this.attachments = this.attachments.filter((entry) => entry.attachmentId !== item.attachmentId);
-        this.notify.success('Attachment deleted');
       },
-      error: (err) => this.notify.error(readErrorMessage(err) || 'Failed to delete attachment')
+      error: (err) => console.error(err)
     });
   }
 
@@ -121,17 +121,13 @@ export class CardDetailComponent implements OnChanges {
   }
 
   addComment(): void {
-    this.commentError = '';
-
     if (this.commentForm.invalid) {
       this.commentForm.markAllAsTouched();
-      this.notify.error('Please enter a valid comment.');
       return;
     }
 
     if (!this.session?.userId) {
-      this.commentError = 'Unable to identify logged-in user.';
-      this.notify.error(this.commentError);
+      console.error('Unable to identify logged-in user.');
       return;
     }
 
@@ -149,13 +145,10 @@ export class CardDetailComponent implements OnChanges {
         this.commentForm.reset({ content: '' });
         this.postingComment = false;
         this.resolveAuthors();
-        this.notify.success('Comment added');
       },
       error: (err) => {
-        const message = readErrorMessage(err);
-        this.commentError = message;
         this.postingComment = false;
-        this.notify.error(message || 'Failed to add comment');
+        console.error(err);
       }
     });
   }
@@ -164,9 +157,8 @@ export class CardDetailComponent implements OnChanges {
     this.commentService.delete(item.commentId).subscribe({
       next: () => {
         this.comments = this.comments.filter((entry) => entry.commentId !== item.commentId);
-        this.notify.success('Comment deleted');
       },
-      error: (err) => this.notify.error(readErrorMessage(err) || 'Failed to delete comment')
+      error: (err) => console.error(err)
     });
   }
 
@@ -187,16 +179,15 @@ export class CardDetailComponent implements OnChanges {
 
   saveEditComment(item: CommentResponse): void {
     const content = this.editContent.trim();
-    if (!content) { this.notify.error('Comment content cannot be empty.'); return; }
+    if (!content) { return; }
 
     this.commentService.update({ commentId: item.commentId, content }).subscribe({
       next: (updated) => {
         this.comments = this.comments.map((entry) => entry.commentId === updated.commentId ? updated : entry);
         this.sortComments();
         this.cancelEditComment();
-        this.notify.success('Comment updated');
       },
-      error: (err) => this.notify.error(readErrorMessage(err) || 'Failed to update comment')
+      error: (err) => console.error(err)
     });
   }
 
@@ -217,16 +208,14 @@ export class CardDetailComponent implements OnChanges {
   }
 
   private loadAttachments(): void {
-    this.attachmentError = '';
     this.loadingAttachments = true;
     this.attachmentService.getByCard(this.card.cardId).subscribe({
       next: (items) => { this.attachments = items; this.sortAttachments(); this.loadingAttachments = false; },
-      error: (err) => { this.attachmentError = readErrorMessage(err); this.loadingAttachments = false; }
+      error: (err) => { console.error(err); this.loadingAttachments = false; }
     });
   }
 
   private loadComments(): void {
-    this.commentError = '';
     this.loadingComments = true;
     this.commentService.getByCard(this.card.cardId, 0, 100, 'createdAt', 'ASC').subscribe({
       next: (page) => {
@@ -235,7 +224,7 @@ export class CardDetailComponent implements OnChanges {
         this.loadingComments = false;
         this.resolveAuthors();
       },
-      error: (err) => { this.commentError = readErrorMessage(err); this.loadingComments = false; }
+      error: (err) => { console.error(err); this.loadingComments = false; }
     });
   }
 

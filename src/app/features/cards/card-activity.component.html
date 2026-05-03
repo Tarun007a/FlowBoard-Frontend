@@ -1,0 +1,40 @@
+<div class="activity-overlay" (click)="close()">
+  <aside class="activity-drawer panel" (click)="$event.stopPropagation()">
+    <header class="activity-head">
+      <div>
+        <div class="badge">Activity</div>
+        <h3>Card Activity</h3>
+      </div>
+      <button class="button secondary" type="button" (click)="close()">Close</button>
+    </header>
+
+    <div class="empty-state" *ngIf="!activities.length && !loading">
+      <p class="muted">No activity yet</p>
+    </div>
+
+    <div class="activity-table-wrap" *ngIf="activities.length">
+      <table class="table activity-table">
+        <thead>
+          <tr>
+            <th>Activity ID</th>
+            <th>Actor ID</th>
+            <th>Activity Type</th>
+            <th>Details</th>
+            <th>Created At</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of activities">
+            <td>{{ item.activityId }}</td>
+            <td>{{ item.actorId }}</td>
+            <td>
+              <span class="activity-type">{{ formatActivityType(item.activityType) }}</span>
+            </td>
+            <td class="activity-details">{{ item.details }}</td>
+            <td>{{ formatDate(item.createdAt) }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </aside>
+</div>

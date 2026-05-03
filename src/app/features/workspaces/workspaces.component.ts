@@ -8,9 +8,7 @@ import { ApiPage } from '../../core/models/api-page.model';
 import { Visibility, WorkspaceRequest, WorkspaceResponse } from '../../core/models/workspace.models';
 import { AuthStoreService } from '../../core/services/auth-store.service';
 import { BoardService } from '../../core/services/board.service';
-import { NotificationService } from '../../core/services/notification.service';
 import { WorkspaceService } from '../../core/services/workspace.service';
-import { readErrorMessage } from '../../core/utils/error.utils';
 
 // Stores member and board counts for each workspace card
 interface WorkspaceCardMeta {
@@ -31,21 +29,18 @@ export class WorkspacesComponent implements OnInit {
   private readonly workspaceService = inject(WorkspaceService);
   private readonly boardService = inject(BoardService);
   private readonly authStore = inject(AuthStoreService);
-  private readonly notify = inject(NotificationService);
 
   // Default values for the create workspace form
   readonly defaultForm = {
     name: '',
     description: '',
-    visibility: 'PUBLIC' as Visibility,
-    logoUrl: ''
+    visibility: 'PUBLIC' as Visibility
   };
 
   form = this.fb.nonNullable.group({
     name: ['', [Validators.required, Validators.minLength(2)]],
     description: ['', [Validators.required, Validators.minLength(2)]],
-    visibility: ['PUBLIC' as Visibility, [Validators.required]],
-    logoUrl: ['', [Validators.required, Validators.minLength(2)]]
+    visibility: ['PUBLIC' as Visibility, [Validators.required]]
   });
 
   session: AuthSession | null = null;
@@ -54,8 +49,6 @@ export class WorkspacesComponent implements OnInit {
   loadingSections = false;
   publicSectionEnabled = true;
   openingWorkspaceId: number | null = null;  // ID of workspace currently being navigated to
-  error = '';
-  createError = '';
 
   myWorkspaces: WorkspaceResponse[] = [];
   joinedWorkspaces: WorkspaceResponse[] = [];
@@ -69,7 +62,6 @@ export class WorkspacesComponent implements OnInit {
   }
 
   openCreateModal(): void {
-    this.createError = '';
     this.showCreateModal = true;
   }
 
@@ -78,31 +70,29 @@ export class WorkspacesComponent implements OnInit {
   }
 
   createWorkspace(): void {
-    this.createError = '';
-
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
     }
 
     this.creatingWorkspace = true;
-    const payload = this.form.getRawValue() as WorkspaceRequest;
+    const value = this.form.getRawValue();
+    const payload: WorkspaceRequest = {
+      name: value.name,
+      description: value.description,
+      visibility: value.visibility
+    };
 
     this.workspaceService.create(payload)
       .pipe(finalize(() => (this.creatingWorkspace = false)))
       .subscribe({
         next: (created) => {
           this.addCreatedWorkspaceToView(created);
-          this.notify.success('Workspace created');
           this.form.reset(this.defaultForm);
           this.showCreateModal = false;
           this.loadWorkspaceSections();
         },
-        error: (err) => {
-          const message = readErrorMessage(err);
-          this.createError = message;
-          this.notify.error(message);
-        }
+        error: (err) => console.error(err)
       });
   }
 
@@ -115,12 +105,12 @@ export class WorkspacesComponent implements OnInit {
       .then((navigated) => {
         if (!navigated) {
           this.openingWorkspaceId = null;
-          this.notify.error('Unable to open workspace');
+          console.error('Unable to open workspace', workspace.workspaceId);
         }
       })
-      .catch(() => {
+      .catch((err) => {
         this.openingWorkspaceId = null;
-        this.notify.error('Unable to open workspace');
+        console.error(err);
       });
   }
 
@@ -156,7 +146,6 @@ export class WorkspacesComponent implements OnInit {
 
   private loadWorkspaceSections(): void {
     this.loadingSections = true;
-    this.error = '';
 
     let hasLoadError = false;
     let joinedLoadFailed = false;
@@ -199,16 +188,11 @@ export class WorkspacesComponent implements OnInit {
             this.updateMeta(workspace);
           }
 
-          if (joinedLoadFailed) this.notify.error('Failed to load joined workspaces');
           if (hasLoadError) {
-            this.error = 'Failed to load workspaces';
-            this.notify.error(this.error);
+            console.error(joinedLoadFailed ? 'Failed to load joined workspaces' : 'Failed to load workspaces');
           }
         },
-        error: () => {
-          this.error = 'Failed to load workspaces';
-          this.notify.error(this.error);
-        }
+        error: (err) => console.error(err)
       });
   }
 

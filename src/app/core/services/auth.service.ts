@@ -45,7 +45,7 @@ export class AuthService {
     return this.api.post<UserDto>('/api/v1/auth/register-admin', request);
   }
 
-  verify(token: string): Observable<string> {
+  verifyEmail(token: string): Observable<string> {
     return this.api.getText(`/api/v1/auth/verify/${encodeURIComponent(token)}`);
   }
 

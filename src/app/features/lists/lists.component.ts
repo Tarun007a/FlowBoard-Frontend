@@ -1,9 +1,8 @@
 import { CommonModule } from '@angular/common';
 import { Component, inject } from '@angular/core';
-import { FormBuilder, FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
-import { TaskListResponse } from '../../core/models/list.models';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { TaskListRequest, TaskListResponse } from '../../core/models/list.models';
 import { ListService } from '../../core/services/list.service';
-import { readErrorMessage } from '../../core/utils/error.utils';
 
 @Component({
   selector: 'app-lists-page',
@@ -16,16 +15,13 @@ export class ListsComponent {
   private readonly fb = inject(FormBuilder);
   private readonly listService = inject(ListService);
 
-  error = '';
-  message = '';
   lists: TaskListResponse[] = [];
 
   // Main form for creating/updating a list
   form = this.fb.nonNullable.group({
     listId: [null as number | null],
     boardId: [null as number | null, [Validators.required]],
-    name: ['', [Validators.required]],
-    color: ['', [Validators.required]]
+    name: ['', [Validators.required]]
   });
 
   // Standalone controls for the reorder section (not part of the main form)
@@ -37,8 +33,7 @@ export class ListsComponent {
     this.form.patchValue({
       listId: item.listId,
       boardId: Number(item.boardId),
-      name: item.name,
-      color: item.color
+      name: item.name
     });
   }
 
@@ -50,42 +45,41 @@ export class ListsComponent {
     }
 
     const value = this.form.getRawValue();
-    const payload = { boardId: value.boardId as number, name: value.name, color: value.color };
+    const payload = { boardId: value.boardId as number, name: value.name } as TaskListRequest;
     const request$ = value.listId
       ? this.listService.update(value.listId, payload)
       : this.listService.create(payload);
 
     request$.subscribe({
       next: (list) => {
-        this.message = value.listId ? 'List updated' : 'List created';
         // Add the new/updated list to the top, removing the old version if it existed
         this.lists = [list, ...this.lists.filter((item) => item.listId !== list.listId)];
       },
-      error: (err) => (this.error = readErrorMessage(err))
+      error: (err) => console.error(err)
     });
   }
 
   loadByBoard(): void {
     const boardId = this.form.controls.boardId.value;
-    if (!boardId) { this.error = 'Board id is required'; return; }
+    if (!boardId) { console.error('Board id is required'); return; }
     this.listService.getByBoard(boardId).subscribe({
       next: (lists) => (this.lists = lists),
-      error: (err) => (this.error = readErrorMessage(err))
+      error: (err) => console.error(err)
     });
   }
 
   loadArchived(): void {
     const boardId = this.form.controls.boardId.value;
-    if (!boardId) { this.error = 'Board id is required'; return; }
+    if (!boardId) { console.error('Board id is required'); return; }
     this.listService.getArchived(boardId).subscribe({
       next: (lists) => (this.lists = lists),
-      error: (err) => (this.error = readErrorMessage(err))
+      error: (err) => console.error(err)
     });
   }
 
   reorder(): void {
     const boardId = this.reorderBoardId.value;
-    if (!boardId) { this.error = 'Board id is required'; return; }
+    if (!boardId) { console.error('Board id is required'); return; }
 
     // Parse comma-separated IDs into an array of numbers
     const orderedIds = this.orderedIds.value
@@ -96,34 +90,34 @@ export class ListsComponent {
     const payload = orderedIds.map((taskListId, index) => ({ taskListId, position: index }));
     this.listService.reorder(boardId, payload).subscribe({
       next: (lists) => (this.lists = lists),
-      error: (err) => (this.error = readErrorMessage(err))
+      error: (err) => console.error(err)
     });
   }
 
   archive(): void {
     const listId = this.form.controls.listId.value;
-    if (!listId) { this.error = 'List id is required'; return; }
+    if (!listId) { console.error('List id is required'); return; }
     this.listService.archive(listId).subscribe({
-      next: (message) => (this.message = message),
-      error: (err) => (this.error = readErrorMessage(err))
+      next: () => void 0,
+      error: (err) => console.error(err)
     });
   }
 
   unarchive(): void {
     const listId = this.form.controls.listId.value;
-    if (!listId) { this.error = 'List id is required'; return; }
+    if (!listId) { console.error('List id is required'); return; }
     this.listService.unarchive(listId).subscribe({
-      next: (message) => (this.message = message),
-      error: (err) => (this.error = readErrorMessage(err))
+      next: () => void 0,
+      error: (err) => console.error(err)
     });
   }
 
   deleteList(): void {
     const listId = this.form.controls.listId.value;
-    if (!listId) { this.error = 'List id is required'; return; }
+    if (!listId) { console.error('List id is required'); return; }
     this.listService.delete(listId).subscribe({
-      next: (message) => (this.message = message),
-      error: (err) => (this.error = readErrorMessage(err))
+      next: () => void 0,
+      error: (err) => console.error(err)
     });
   }
 }

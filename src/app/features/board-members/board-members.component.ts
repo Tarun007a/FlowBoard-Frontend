@@ -3,8 +3,6 @@ import { Component, DestroyRef, Input, OnChanges, OnDestroy, OnInit, SimpleChang
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { UserDto } from '../../core/models/auth.models';
 import { BoardService } from '../../core/services/board.service';
-import { NotificationService } from '../../core/services/notification.service';
-import { readErrorMessage } from '../../core/utils/error.utils';
 import { AddBoardMemberComponent } from '../add-board-member/add-board-member.component';
 
 @Component({
@@ -16,14 +14,12 @@ import { AddBoardMemberComponent } from '../add-board-member/add-board-member.co
 })
 export class BoardMembersComponent implements OnInit, OnChanges, OnDestroy {
   private readonly boardService = inject(BoardService);
-  private readonly notify = inject(NotificationService);
   private readonly destroyRef = inject(DestroyRef);
 
   @Input({ required: true }) boardId!: number;
 
   members: UserDto[] = [];
   loading = false;
-  error = '';
   showAddMemberDialog = false;
 
   ngOnInit(): void {
@@ -43,18 +39,12 @@ export class BoardMembersComponent implements OnInit, OnChanges, OnDestroy {
 
   loadMembers(): void {
     this.loading = true;
-    this.error = '';
 
     this.boardService.getMembers(this.boardId, 0, 100).subscribe({
       next: () => {
         // Stream updates the view.
       },
-      error: (err) => {
-        const message = readErrorMessage(err);
-        this.error = message;
-        this.notify.error(message);
-        this.loading = false;
-      },
+      error: (err) => { console.error(err); this.loading = false; },
       complete: () => (this.loading = false)
     });
   }
@@ -70,7 +60,6 @@ export class BoardMembersComponent implements OnInit, OnChanges, OnDestroy {
   onMemberAdded(): void {
     this.showAddMemberDialog = false;
     this.loadMembers();
-    this.notify.success('Member added to board');
   }
 
   displayName(member: UserDto): string {

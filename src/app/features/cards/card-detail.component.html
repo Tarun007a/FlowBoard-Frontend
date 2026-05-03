@@ -10,6 +10,9 @@
         <h2>{{ card.title }}</h2>
       </div>
       <div class="actions">
+        <button class="icon-button" type="button" title="View Activity" aria-label="View Activity" (click)="openActivity()">
+          <span class="clock-icon" aria-hidden="true"></span>
+        </button>
         <button class="button secondary" type="button" (click)="requestEdit.emit(card)">Edit</button>
         <button class="button danger detail-delete" type="button" (click)="deleteCard()">Delete</button>
         <button class="button secondary" type="button" (click)="close()">Close</button>
@@ -58,7 +61,6 @@
       </div>
 
       <p class="muted" *ngIf="selectedFile">Selected: {{ selectedFile.name }}</p>
-      <p class="error" *ngIf="attachmentError">{{ attachmentError }}</p>
 
       <div class="empty-state" *ngIf="!attachments.length && !loadingAttachments">
         <p class="muted">No attachments yet.</p>
@@ -95,8 +97,6 @@
         </div>
       </form>
 
-      <p class="error" *ngIf="commentError">{{ commentError }}</p>
-
       <div class="empty-state" *ngIf="!comments.length && !loadingComments">
         <p class="muted">No comments yet.</p>
       </div>
@@ -131,5 +131,10 @@
       </div>
     </section>
 
+    <app-card-activity
+      *ngIf="showActivity"
+      [cardId]="card.cardId"
+      (closed)="closeActivity()"
+    ></app-card-activity>
   </aside>
 </div>

@@ -35,6 +35,61 @@
   min-width: 88px;
 }
 
+.icon-button {
+  width: 38px;
+  height: 38px;
+  border: 1px solid #93c5fd;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #1e40af;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1);
+  cursor: pointer;
+  display: inline-grid;
+  place-items: center;
+  transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
+}
+
+.icon-button:hover {
+  background: #eff6ff;
+  border-color: #60a5fa;
+  transform: translateY(-1px);
+}
+
+.icon-button:focus-visible {
+  outline: 3px solid rgba(59, 130, 246, 0.33);
+  outline-offset: 2px;
+}
+
+.clock-icon {
+  width: 18px;
+  height: 18px;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  position: relative;
+  display: inline-block;
+}
+
+.clock-icon::before,
+.clock-icon::after {
+  content: '';
+  position: absolute;
+  left: 7px;
+  top: 3px;
+  width: 2px;
+  border-radius: 999px;
+  background: currentColor;
+  transform-origin: bottom center;
+}
+
+.clock-icon::before {
+  height: 6px;
+}
+
+.clock-icon::after {
+  height: 5px;
+  transform: rotate(120deg);
+}
+
 .detail-section {
   border: 1px solid #d6e4f5;
   border-radius: 12px;

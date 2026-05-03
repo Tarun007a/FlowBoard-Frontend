@@ -4,7 +4,7 @@ export interface WorkspaceRequest {
   name: string;
   description: string;
   visibility: Visibility;
-  logoUrl: string;
+  logoUrl?: string | null;
 }
 
 export interface WorkspaceResponse {

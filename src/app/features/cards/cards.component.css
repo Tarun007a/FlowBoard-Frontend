@@ -52,9 +52,12 @@
   gap: 0.65rem;
   align-content: start;
   min-height: 320px;
+  transition: box-shadow 160ms ease, transform 160ms ease;
 }
 
 .lane-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.4rem; }
+.lane-drag-handle { cursor: grab; }
+.lane-drag-handle:active { cursor: grabbing; }
 .lane-head h2 { margin: 0; font-size: 1rem; }
 .lane-head p { margin: 0.2rem 0 0; font-size: 0.8rem; color: #5a7392; }
 
@@ -102,7 +105,13 @@
   opacity: 0.45;
 }
 
-.lane-cards { display: grid; gap: 0.55rem; }
+.lane-cards {
+  display: grid;
+  gap: 0.55rem;
+  min-height: 42px;
+  align-content: start;
+  transition: background-color 140ms ease;
+}
 
 .task-card {
   display: grid;
@@ -112,6 +121,41 @@
   background: #ffffff;
   border: 1px solid #d2e3f7;
   cursor: grab;
+  transition: box-shadow 160ms ease, transform 160ms ease, border-color 160ms ease;
+}
+
+.task-card:active { cursor: grabbing; }
+
+.lane.cdk-drag-preview,
+.task-card.cdk-drag-preview {
+  box-sizing: border-box;
+  box-shadow: 0 18px 38px rgba(31, 58, 90, 0.2), 0 4px 12px rgba(31, 58, 90, 0.12);
+  transform: scale(1.02);
+}
+
+.task-card.cdk-drag-preview {
+  border-color: #aac8ea;
+}
+
+.lane.cdk-drag-placeholder,
+.task-card.cdk-drag-placeholder {
+  opacity: 0.18;
+}
+
+.lane.cdk-drag-animating,
+.task-card.cdk-drag-animating,
+.lane-scroller.cdk-drop-list-dragging .lane:not(.cdk-drag-placeholder),
+.lane-cards.cdk-drop-list-dragging .task-card:not(.cdk-drag-placeholder) {
+  transition: transform 180ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.lane-scroller.cdk-drop-list-dragging {
+  cursor: grabbing;
+}
+
+.lane-cards.cdk-drop-list-dragging {
+  background: rgba(220, 236, 255, 0.46);
+  border-radius: 10px;
 }
 
 .task-card.task-card-done {

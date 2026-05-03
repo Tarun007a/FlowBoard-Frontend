@@ -1,4 +1,5 @@
 import { CommonModule } from '@angular/common';
+import { CdkDragDrop, DragDropModule, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
 import { Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -7,21 +8,19 @@ import { catchError, finalize, map, of, switchMap } from 'rxjs';
 import { AuthSession, UserDto } from '../../core/models/auth.models';
 import { BoardResponse } from '../../core/models/board.models';
 import { CardResponse, CardUpdateRequest, Priority, Status } from '../../core/models/card.models';
-import { TaskListResponse } from '../../core/models/list.models';
+import { TaskListRequest, TaskListResponse } from '../../core/models/list.models';
 import { AuthStoreService } from '../../core/services/auth-store.service';
 import { BoardService } from '../../core/services/board.service';
 import { CardService } from '../../core/services/card.service';
 import { ListService } from '../../core/services/list.service';
-import { NotificationService } from '../../core/services/notification.service';
 import { UserService } from '../../core/services/user.service';
 import { isAdminRole } from '../../core/utils/admin.utils';
-import { readErrorMessage } from '../../core/utils/error.utils';
 import { CardDetailComponent } from './card-detail.component';
 
 @Component({
   selector: 'app-cards-page',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink, CardDetailComponent],
+  imports: [CommonModule, DragDropModule, ReactiveFormsModule, RouterLink, CardDetailComponent],
   templateUrl: './cards.component.html',
   styleUrl: './cards.component.css'
 })
@@ -33,7 +32,6 @@ export class CardsComponent implements OnInit {
   private readonly listService = inject(ListService);
   private readonly cardService = inject(CardService);
   private readonly userService = inject(UserService);
-  private readonly notify = inject(NotificationService);
   // destroyRef auto-cancels subscriptions when this component is destroyed
   private readonly destroyRef = inject(DestroyRef);
 
@@ -52,19 +50,14 @@ export class CardsComponent implements OnInit {
   showCardModal = false;
   showMembersPanel = false;
 
-  draggedCardId: number | null = null;
   togglingCardId: number | null = null;
   deletingListId: number | null = null;
-  memberLoadError = '';
-  error = '';
-
   // Available options for dropdowns
   priorities: Priority[] = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
   statuses: Status[] = ['TO_DO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE'];
 
   listForm = this.fb.nonNullable.group({
-    name: ['', [Validators.required, Validators.minLength(2)]],
-    color: ['#7fb4f0', [Validators.required]]
+    name: ['', [Validators.required, Validators.minLength(2)]]
   });
 
   cardForm = this.fb.nonNullable.group({
@@ -118,7 +111,7 @@ export class CardsComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((items) => { this.boardMembers = items; });
 
-    if (!this.boardId) { this.error = 'Board id is required.'; return; }
+    if (!this.boardId) { console.error('Board id is required.'); return; }
 
     this.loadBoard();
     this.refreshCanvas();
@@ -148,13 +141,12 @@ export class CardsComponent implements OnInit {
     if (this.listForm.invalid) { this.listForm.markAllAsTouched(); return; }
 
     const value = this.listForm.getRawValue();
-    this.listService.create({ boardId: this.boardId, name: value.name, color: value.color }).subscribe({
+    this.listService.create({ boardId: this.boardId, name: value.name } as TaskListRequest).subscribe({
       next: () => {
-        this.notify.success('List created');
-        this.listForm.reset({ name: '', color: '#7fb4f0' });
+        this.listForm.reset({ name: '' });
         this.closeModals();
       },
-      error: (err) => { const message = readErrorMessage(err); this.error = message; this.notify.error(message); }
+      error: (err) => console.error(err)
     });
   }
 
@@ -191,7 +183,7 @@ export class CardsComponent implements OnInit {
           console.log('Card updated', updatedCard.cardId);
           this.closeModals();
         },
-        error: (err) => { const message = readErrorMessage(err); this.error = message; this.notify.error(message); }
+        error: (err) => console.error(err)
       });
       return;
     }
@@ -203,7 +195,7 @@ export class CardsComponent implements OnInit {
     // Backend currently rejects null assigneeId on create, so default to current user.
     const assigneeId = value.assigneeId ?? this.session?.userId ?? null;
     if (!assigneeId) {
-      this.notify.error('Unable to determine assignee. Please sign in again.');
+      console.error('Unable to determine assignee. Please sign in again.');
       return;
     }
 
@@ -214,8 +206,8 @@ export class CardsComponent implements OnInit {
       dueDate: this.normalizeDate(value.dueDate), startDate: this.normalizeDate(value.startDate),
       assigneeId
     }).subscribe({
-      next: () => { this.notify.success('Card created'); this.closeModals(); },
-      error: (err) => { const message = readErrorMessage(err); this.error = message; this.notify.error(message); }
+      next: () => { this.closeModals(); },
+      error: (err) => console.error(err)
     });
   }
 
@@ -227,8 +219,8 @@ export class CardsComponent implements OnInit {
     if (!userId) return;
 
     this.boardService.addMember({ boardId: this.boardId, userId }).subscribe({
-      next: () => { this.notify.success('Member added'); this.memberForm.reset({ userId: null }); this.loadMembers(); },
-      error: (err) => this.notify.error(readErrorMessage(err))
+      next: () => { this.memberForm.reset({ userId: null }); this.loadMembers(); },
+      error: (err) => console.error(err)
     });
   }
 
@@ -236,7 +228,7 @@ export class CardsComponent implements OnInit {
     if (!this.canManageMembers) return;
     this.boardService.removeMember(this.boardId, userId).subscribe({
       next: () => void 0,
-      error: (err) => this.notify.error(readErrorMessage(err))
+      error: (err) => console.error(err)
     });
   }
 
@@ -250,6 +242,14 @@ export class CardsComponent implements OnInit {
     return this.cards
       .filter((card) => card.listId === listId)
       .sort((left, right) => left.position - right.position);
+  }
+
+  cardDropListId(listId: number): string {
+    return `list-cards-${listId}`;
+  }
+
+  cardDropListIds(): string[] {
+    return this.orderedLists().map((list) => this.cardDropListId(list.listId));
   }
 
   openCardDetail(card: CardResponse): void {
@@ -289,16 +289,59 @@ export class CardsComponent implements OnInit {
     this.setCardFormEditMode(true);
   }
 
-  // Called when drag starts - remember which card is being dragged
-  startDrag(cardId: number): void { this.draggedCardId = cardId; }
+  dropList(event: CdkDragDrop<TaskListResponse[]>): void {
+    if (event.previousIndex === event.currentIndex) return;
 
-  // Called when card is dropped on a list - moves the card to that list
-  dropOnList(targetListId: number): void {
-    if (!this.draggedCardId) return;
-    const targetCount = this.cardsByList(targetListId).length;
-    this.cardService.move(this.draggedCardId, targetListId, targetCount).subscribe({
-      next: () => { this.draggedCardId = null; },
-      error: (err) => { const message = readErrorMessage(err); this.error = message; this.notify.error(message); }
+    const previousLists = this.lists;
+    const ordered = this.orderedLists();
+    moveItemInArray(ordered, event.previousIndex, event.currentIndex);
+    const nextLists = ordered.map((list, index) => ({ ...list, position: index + 1 }));
+
+    this.applyLists(nextLists);
+    this.listService.reorder(this.boardId, this.toListOrderPayload(nextLists)).subscribe({
+      error: (err) => {
+        console.error(err);
+        this.applyLists(previousLists);
+      }
+    });
+  }
+
+  dropCard(event: CdkDragDrop<CardResponse[]>): void {
+    if (event.previousContainer === event.container && event.previousIndex === event.currentIndex) {
+      return;
+    }
+
+    const previousCards = this.cards;
+    const sourceListId = this.listIdFromDropContainer(event.previousContainer.id);
+    const targetListId = this.listIdFromDropContainer(event.container.id);
+    const movedCard = event.item.data as CardResponse;
+
+    if (!sourceListId || !targetListId || !movedCard) return;
+
+    const sourceCards = this.cardsByList(sourceListId);
+    const targetCards = sourceListId === targetListId ? sourceCards : this.cardsByList(targetListId);
+
+    if (event.previousContainer === event.container) {
+      moveItemInArray(sourceCards, event.previousIndex, event.currentIndex);
+      this.applyCardOrder(sourceListId, sourceCards);
+      this.cardService.reorder(sourceListId, sourceCards.map((card) => card.cardId)).subscribe({
+        error: (err) => {
+          console.error(err);
+          this.applyCards(previousCards);
+        }
+      });
+      return;
+    }
+
+    transferArrayItem(sourceCards, targetCards, event.previousIndex, event.currentIndex);
+    this.applyCardOrder(sourceListId, sourceCards);
+    this.applyCardOrder(targetListId, targetCards);
+
+    this.cardService.move(movedCard.cardId, targetListId, event.currentIndex + 1).subscribe({
+      error: (err) => {
+        console.error(err);
+        this.applyCards(previousCards);
+      }
     });
   }
 
@@ -309,7 +352,6 @@ export class CardsComponent implements OnInit {
     const confirmed = window.confirm('Delete this list?');
     if (!confirmed) return;
 
-    this.error = '';
     this.deletingListId = list.listId;
 
     this.listService.delete(list.listId)
@@ -323,7 +365,6 @@ export class CardsComponent implements OnInit {
         },
         error: (err) => {
           console.error(err);
-          this.error = 'Unable to delete list. Remove cards first.';
         }
       });
   }
@@ -343,7 +384,7 @@ export class CardsComponent implements OnInit {
       .pipe(finalize(() => { this.togglingCardId = null; }))
       .subscribe({
         next: (updatedCard) => this.syncUpdatedCard(updatedCard),
-        error: (err) => { const message = readErrorMessage(err); this.error = message; this.notify.error(message); }
+        error: (err) => console.error(err)
       });
   }
 
@@ -375,20 +416,62 @@ export class CardsComponent implements OnInit {
   private loadBoard(): void {
     this.boardService.get(this.boardId).subscribe({
       next: (board) => { this.board = board; },
-      error: (err) => { const message = readErrorMessage(err); this.error = message; this.notify.error(message); }
+      error: (err) => console.error(err)
     });
   }
 
   private refreshCanvas(): void {
-    this.listService.getByBoard(this.boardId).subscribe({ error: (err) => { this.error = readErrorMessage(err); } });
-    this.cardService.getByBoard(this.boardId).subscribe({ error: (err) => { this.error = readErrorMessage(err); } });
+    this.listService.getByBoard(this.boardId).subscribe({ error: (err) => console.error(err) });
+    this.cardService.getByBoard(this.boardId).subscribe({ error: (err) => console.error(err) });
+  }
+
+  private applyLists(nextLists: TaskListResponse[]): void {
+    const orderedIds = new Set(nextLists.map((list) => list.listId));
+    const merged = [
+      ...nextLists,
+      ...this.lists.filter((list) => !orderedIds.has(list.listId))
+    ];
+
+    this.lists = merged;
+    this.listService.setLists(merged);
+  }
+
+  private applyCards(nextCards: CardResponse[]): void {
+    this.cards = nextCards;
+    this.cardService.setCards(nextCards);
+    this.syncSelectedCard();
+  }
+
+  private applyCardOrder(listId: number, orderedCards: CardResponse[]): void {
+    const orderedIds = new Set(orderedCards.map((card) => card.cardId));
+    const nextOrderedCards = orderedCards.map((card, index) => ({
+      ...card,
+      listId,
+      position: index + 1
+    }));
+    const nextCards = [
+      ...this.cards.filter((card) => !orderedIds.has(card.cardId)),
+      ...nextOrderedCards
+    ];
+
+    this.applyCards(nextCards);
+  }
+
+  private toListOrderPayload(lists: TaskListResponse[]) {
+    return lists.map((list, index) => ({
+      taskListId: list.listId,
+      position: index + 1
+    }));
+  }
+
+  private listIdFromDropContainer(containerId: string): number {
+    return Number(containerId.replace('list-cards-', ''));
   }
 
   private loadMembers(): void {
-    this.memberLoadError = '';
     this.boardService.getMembers(this.boardId, 0, 100).pipe(
       catchError((err) => {
-        this.memberLoadError = readErrorMessage(err);
+        console.error(err);
         return of({ pageSize: 0, pageNumber: 0, numberOfElements: 0, totalPages: 0, totalNumberOfElements: 0, content: [], last: true, first: true });
       })
     ).subscribe();

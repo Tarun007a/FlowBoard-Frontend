@@ -30,7 +30,7 @@ export class VerifyAccountComponent implements OnInit {
     }
 
     this.auth
-      .verify(token)
+      .verifyEmail(token)
       .pipe(
         finalize(() => {
           this.loading = false;

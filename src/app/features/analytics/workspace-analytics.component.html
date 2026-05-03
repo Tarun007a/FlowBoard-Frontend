@@ -1,0 +1,95 @@
+<div class="analytics-page" *ngIf="workspace; else workspaceState">
+  <section class="analytics-hero panel">
+    <div>
+      <span class="analytics-kicker">Workspace Analytics</span>
+      <h1>{{ workspace.name }}</h1>
+      <p class="muted">{{ workspace.description || 'No description provided.' }}</p>
+    </div>
+    <div class="hero-stat-cluster">
+      <div><span>Boards</span><strong>{{ workspace.totalBoards }}</strong></div>
+      <div><span>Lists</span><strong>{{ workspace.totalLists }}</strong></div>
+      <div><span>Members</span><strong>{{ workspace.totalMembers }}</strong></div>
+    </div>
+  </section>
+
+  <div class="analytics-two-col">
+    <section class="analytics-section panel">
+      <header class="analytics-section-head">
+        <div>
+          <h2>Status Distribution</h2>
+          <p class="muted">{{ workspace.cardsSummary.total }} total cards</p>
+        </div>
+        <span class="soft-pill">{{ workspace.cardsSummary.completionRate }}% done</span>
+      </header>
+      <app-status-doughnut [summary]="workspace.cardsSummary"></app-status-doughnut>
+    </section>
+
+    <section class="analytics-section panel">
+      <header class="analytics-section-head">
+        <div>
+          <h2>Total Counts</h2>
+          <p class="muted">Workspace scale at a glance.</p>
+        </div>
+      </header>
+      <div class="count-grid">
+        <div class="count-card"><span>Boards</span><strong>{{ workspace.totalBoards }}</strong></div>
+        <div class="count-card"><span>Lists</span><strong>{{ workspace.totalLists }}</strong></div>
+        <div class="count-card"><span>Members</span><strong>{{ workspace.totalMembers }}</strong></div>
+      </div>
+    </section>
+  </div>
+
+  <section class="analytics-section panel">
+    <header class="analytics-section-head">
+      <div>
+        <h2>Members</h2>
+        <p class="muted">Open a member for personal task status.</p>
+      </div>
+      <strong class="section-count">{{ members.length }}</strong>
+    </header>
+    <div class="analytics-list" *ngIf="members.length; else noMembers">
+      <button class="list-row" type="button" *ngFor="let member of members; trackBy: trackByMemberId" (click)="openMember(member.userId)">
+        <strong>User #{{ member.userId }}</strong>
+        <span>Joined {{ member.joinedAt | date: 'medium' }}</span>
+      </button>
+    </div>
+    <ng-template #noMembers><div class="analytics-empty">No members found.</div></ng-template>
+  </section>
+
+  <section class="analytics-section panel">
+    <header class="analytics-section-head">
+      <div>
+        <h2>Boards</h2>
+        <p class="muted">Open a board to review lists and filtered cards.</p>
+      </div>
+      <strong class="section-count">{{ boards.length }}</strong>
+    </header>
+    <div class="board-grid" *ngIf="boards.length; else noBoards">
+      <article class="board-analytics-card" *ngFor="let board of boards; trackBy: trackByBoardId" (click)="openBoard(board.boardId)">
+        <div>
+          <h3>{{ board.name }}</h3>
+          <p>{{ board.description || 'No description provided.' }}</p>
+        </div>
+        <footer>
+          <span class="soft-pill">{{ board.visibility }}</span>
+          <span class="soft-pill">{{ board.isClosed ? 'Closed' : 'Open' }}</span>
+        </footer>
+      </article>
+    </div>
+    <ng-template #noBoards><div class="analytics-empty">No boards found.</div></ng-template>
+  </section>
+</div>
+
+<ng-template #workspaceState>
+  <div class="analytics-page">
+    <section class="analytics-section panel">
+      <div *ngIf="loading; else noWorkspaceAnalytics" class="loading-box">
+        <span class="loading-spinner" aria-hidden="true"></span>
+        Generating analytics for you... this may take some time
+      </div>
+      <ng-template #noWorkspaceAnalytics>
+        <div class="analytics-empty">No analytics available</div>
+      </ng-template>
+    </section>
+  </div>
+</ng-template>

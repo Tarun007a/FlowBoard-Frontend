@@ -1,0 +1,39 @@
+<div class="auth-page verify-page">
+  <div class="auth-glow auth-glow-left"></div>
+  <div class="auth-glow auth-glow-right"></div>
+
+  <section class="panel auth-card verify-card">
+    <div class="verify-icon" [class.is-success]="state === 'success'" [class.is-failed]="state === 'failed'">
+      <span *ngIf="state === 'verifying'" class="spinner" aria-hidden="true"></span>
+      <span *ngIf="state === 'success'" aria-hidden="true">&#10003;</span>
+      <span *ngIf="state === 'failed'" aria-hidden="true">!</span>
+    </div>
+
+    <div class="stack verify-copy">
+      <div class="badge">Email Verification</div>
+
+      <ng-container [ngSwitch]="state">
+        <ng-container *ngSwitchCase="'verifying'">
+          <h1>Verifying your account...</h1>
+          <p class="muted">Please wait while we confirm your verification link.</p>
+        </ng-container>
+
+        <ng-container *ngSwitchCase="'success'">
+          <h1>Email Verified Successfully</h1>
+          <p class="muted">{{ message }}</p>
+        </ng-container>
+
+        <ng-container *ngSwitchCase="'failed'">
+          <h1>Verification Failed</h1>
+          <p class="muted">{{ message }}</p>
+        </ng-container>
+      </ng-container>
+    </div>
+
+    <div class="actions verify-actions" *ngIf="state !== 'verifying'">
+      <button class="button accent" type="button" (click)="goToLogin()">
+        {{ state === 'success' ? 'Go to Login' : 'Back to Login' }}
+      </button>
+    </div>
+  </section>
+</div>

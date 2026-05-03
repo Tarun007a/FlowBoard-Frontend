@@ -33,18 +33,31 @@
     </header>
 
     <section class="board-grid" *ngIf="boards.length; else emptyBoards">
-      <a
+      <article
         class="board-card"
         *ngFor="let board of boards"
-        [routerLink]="['/board', board.boardId]"
+        role="link"
+        tabindex="0"
         [class.card-loading]="openingBoardId === board.boardId"
         [attr.aria-busy]="openingBoardId === board.boardId"
         [ngStyle]="{ 'background': boardBackground(board) }"
-        (click)="markBoardOpening(board.boardId)">
+        (click)="openBoardFromCard(board.boardId)"
+        (keydown)="onBoardCardKeydown($event, board.boardId)">
 
         <header class="board-head">
           <h3>{{ board.name }}</h3>
-          <span class="board-pill">{{ board.isClosed ? 'Closed' : 'Open' }}</span>
+          <div class="board-actions">
+            <button
+              class="icon-button"
+              type="button"
+              title="Edit board"
+              aria-label="Edit board"
+              *ngIf="canEditBoard(board)"
+              (click)="openBoardUpdateModal(board, $event)">
+              <span aria-hidden="true">&#9998;</span>
+            </button>
+            <span class="board-pill">{{ board.isClosed ? 'Closed' : 'Open' }}</span>
+          </div>
         </header>
 
         <p class="board-text">{{ board.description || 'No description provided.' }}</p>
@@ -59,7 +72,7 @@
             <strong>{{ asCount(metaFor(board.boardId).memberCount) }}</strong>
           </div>
         </footer>
-      </a>
+      </article>
     </section>
   </section>
 
@@ -82,7 +95,42 @@
     </section>
   </ng-template>
 
-  <p class="error" *ngIf="error">{{ error }}</p>
+</div>
+
+<!-- Update board modal -->
+<div class="modal-overlay" *ngIf="showBoardUpdateModal" (click)="closeBoardUpdateModal()">
+  <section class="panel modal-card" (click)="$event.stopPropagation()">
+    <header class="modal-head">
+      <div>
+        <div class="workspace-chip">Board</div>
+        <h2>Update board</h2>
+      </div>
+      <button class="button secondary" type="button" (click)="closeBoardUpdateModal()">Close</button>
+    </header>
+
+    <form class="stack" [formGroup]="boardUpdateForm" (ngSubmit)="updateBoard()">
+      <div class="field">
+        <label>Board Name</label>
+        <input type="text" formControlName="name" />
+      </div>
+      <div class="field">
+        <label>Description</label>
+        <textarea formControlName="description"></textarea>
+      </div>
+      <div class="field">
+        <label>Visibility</label>
+        <select formControlName="visibility">
+          <option value="PUBLIC">PUBLIC</option>
+          <option value="PRIVATE">PRIVATE</option>
+        </select>
+      </div>
+      <div class="actions">
+        <button class="button accent" type="submit" [disabled]="updatingBoard || boardUpdateForm.invalid">
+          {{ updatingBoard ? 'Updating...' : 'Update Board' }}
+        </button>
+      </div>
+    </form>
+  </section>
 </div>
 
 <!-- Members drawer overlay (darkens the background) -->
@@ -162,18 +210,12 @@
         <label>Description</label>
         <textarea formControlName="description"></textarea>
       </div>
-      <div class="grid cols-2">
-        <div class="field">
-          <label>Visibility</label>
-          <select formControlName="visibility">
-            <option value="PUBLIC">PUBLIC</option>
-            <option value="PRIVATE">PRIVATE</option>
-          </select>
-        </div>
-        <div class="field">
-          <label>Logo URL</label>
-          <input type="text" formControlName="logoUrl" />
-        </div>
+      <div class="field">
+        <label>Visibility</label>
+        <select formControlName="visibility">
+          <option value="PUBLIC">PUBLIC</option>
+          <option value="PRIVATE">PRIVATE</option>
+        </select>
       </div>
       <div class="actions">
         <button class="button accent" type="submit" [disabled]="loading || workspaceForm.invalid">
@@ -211,10 +253,6 @@
             <option value="PUBLIC">PUBLIC</option>
             <option value="PRIVATE">PRIVATE</option>
           </select>
-        </div>
-        <div class="field">
-          <label>Background</label>
-          <input type="text" formControlName="background" placeholder="#d9eaff" />
         </div>
       </div>
       <div class="actions">

@@ -82,7 +82,7 @@ export class CardService {
     return this.api.putText(`/api/v1/cards/list/${listId}/reorder`, orderedCardIds).pipe(
       tap(() => {
         const indexById = new Map<number, number>();
-        orderedCardIds.forEach((id, index) => indexById.set(id, index));
+        orderedCardIds.forEach((id, index) => indexById.set(id, index + 1));
 
         const next = this.cardsSubject.value.map((card) => {
           if (!indexById.has(card.cardId)) {
@@ -148,7 +148,11 @@ export class CardService {
     );
   }
 
-  getActivities(cardId: number, page = 0, size = 10, sortBy = 'createdAt', direction = 'DESC') {
+  getCardActivities(cardId: number, page = 0, size = 10, sortBy = 'createdAt', direction = 'DESC') {
     return this.api.get<ApiPage<CardActivityResponse>>(`/api/v1/cards/card/${cardId}`, { page, size, sortBy, direction });
+  }
+
+  getActivities(cardId: number, page = 0, size = 10, sortBy = 'createdAt', direction = 'DESC') {
+    return this.getCardActivities(cardId, page, size, sortBy, direction);
   }
 }

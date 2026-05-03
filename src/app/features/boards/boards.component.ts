@@ -8,9 +8,7 @@ import { catchError } from 'rxjs/operators';
 import { ApiPage } from '../../core/models/api-page.model';
 import { BoardRequest, BoardResponse } from '../../core/models/board.models';
 import { Visibility } from '../../core/models/workspace.models';
-import { NotificationService } from '../../core/services/notification.service';
 import { BoardService } from '../../core/services/board.service';
-import { readErrorMessage } from '../../core/utils/error.utils';
 
 @Component({
   selector: 'app-boards-page',
@@ -23,28 +21,23 @@ export class BoardsComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly fb = inject(FormBuilder);
   private readonly boardService = inject(BoardService);
-  private readonly notify = inject(NotificationService);
   // destroyRef is used to automatically unsubscribe when the component is destroyed
   private readonly destroyRef = inject(DestroyRef);
 
   workspaceId = 0;
   boards: BoardResponse[] = [];
-  error = '';
-  message = '';
 
   // Default form values used when resetting
   readonly defaultForm = {
     name: '',
     description: '',
-    visibility: 'PUBLIC' as Visibility,
-    background: '#0f4c81'
+    visibility: 'PUBLIC' as Visibility
   };
 
   form = this.fb.nonNullable.group({
     name: ['', [Validators.required, Validators.minLength(2)]],
     description: ['', [Validators.required]],
-    visibility: ['PUBLIC' as Visibility, [Validators.required]],
-    background: ['#0f4c81']
+    visibility: ['PUBLIC' as Visibility, [Validators.required]]
   });
 
   ngOnInit(): void {
@@ -56,7 +49,7 @@ export class BoardsComponent implements OnInit {
     this.workspaceId = Number(this.route.snapshot.paramMap.get('id') ?? 0);
 
     if (!this.workspaceId) {
-      this.error = 'Workspace id is required.';
+      console.error('Workspace id is required.');
       return;
     }
 
@@ -69,34 +62,23 @@ export class BoardsComponent implements OnInit {
       return;
     }
 
-    this.error = '';
-    this.message = '';
-
     const value = this.form.getRawValue();
-    const payload: BoardRequest = {
+    const payload = {
       workspaceId: this.workspaceId,
       name: value.name,
       description: value.description,
-      background: value.background,
       visibility: value.visibility
-    };
+    } as BoardRequest;
 
     this.boardService.create(payload).subscribe({
       next: () => {
-        this.notify.success('Board created');
         this.form.reset(this.defaultForm);
       },
-      error: (err) => {
-        const message = readErrorMessage(err);
-        this.error = message;
-        this.notify.error(message);
-      }
+      error: (err) => console.error(err)
     });
   }
 
   loadBoards(): void {
-    this.error = '';
-
     // Load public boards and private boards at the same time, then merge them
     combineLatest([
       this.boardService.getPublicBoardsForLoggedUser(this.workspaceId, 0, 100).pipe(catchError(() => of(this.emptyPage()))),
@@ -115,21 +97,13 @@ export class BoardsComponent implements OnInit {
           this.loadPublicOnly();
         }
       },
-      error: (err) => {
-        const message = readErrorMessage(err);
-        this.error = message;
-        this.notify.error(message);
-      }
+      error: (err) => console.error(err)
     });
   }
 
   loadPublicOnly(): void {
     this.boardService.getPublicBoards(this.workspaceId, 0, 100).subscribe({
-      error: (err) => {
-        const message = readErrorMessage(err);
-        this.error = message;
-        this.notify.error(message);
-      }
+      error: (err) => console.error(err)
     });
   }
 
@@ -139,12 +113,8 @@ export class BoardsComponent implements OnInit {
       : this.boardService.close(board.boardId);
 
     request$.subscribe({
-      next: (message) => this.notify.info(message),
-      error: (err) => {
-        const message = readErrorMessage(err);
-        this.error = message;
-        this.notify.error(message);
-      }
+      next: () => void 0,
+      error: (err) => console.error(err)
     });
   }
 

@@ -5,7 +5,6 @@ import { finalize, forkJoin, interval, of, startWith, switchMap } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { NotificationResponse } from '../../core/models/notification.models';
 import { NotificationService } from '../../core/services/notification.service';
-import { readErrorMessage } from '../../core/utils/error.utils';
 
 @Component({
   selector: 'app-notifications-page',
@@ -18,7 +17,6 @@ export class NotificationsComponent implements OnInit {
   private readonly notificationService = inject(NotificationService);
   private readonly destroyRef = inject(DestroyRef);
 
-  error = '';
   notifications: NotificationResponse[] = [];
   unreadCount = 0;
   loading = true;
@@ -40,7 +38,6 @@ export class NotificationsComponent implements OnInit {
     }
 
     this.actionBusy = true;
-    this.error = '';
 
     this.notificationService
       .markAsRead(notification.notificationId)
@@ -54,10 +51,7 @@ export class NotificationsComponent implements OnInit {
           );
           this.unreadCount = Math.max(0, this.unreadCount - 1);
         },
-        error: (err) => {
-          this.error = readErrorMessage(err);
-          this.notificationService.error(this.error);
-        }
+        error: (err) => console.error(err)
       });
   }
 
@@ -67,7 +61,6 @@ export class NotificationsComponent implements OnInit {
     }
 
     this.actionBusy = true;
-    this.error = '';
 
     this.notificationService
       .markAllAsRead()
@@ -77,10 +70,7 @@ export class NotificationsComponent implements OnInit {
           this.notifications = this.notifications.map((item) => ({ ...item, isRead: true }));
           this.unreadCount = 0;
         },
-        error: (err) => {
-          this.error = readErrorMessage(err);
-          this.notificationService.error(this.error);
-        }
+        error: (err) => console.error(err)
       });
   }
 
@@ -92,7 +82,6 @@ export class NotificationsComponent implements OnInit {
     }
 
     this.actionBusy = true;
-    this.error = '';
 
     const target = this.notifications.find((item) => item.notificationId === notificationId) ?? null;
 
@@ -106,10 +95,7 @@ export class NotificationsComponent implements OnInit {
             this.unreadCount = Math.max(0, this.unreadCount - 1);
           }
         },
-        error: (err) => {
-          this.error = readErrorMessage(err);
-          this.notificationService.error(this.error);
-        }
+        error: (err) => console.error(err)
       });
   }
 
@@ -119,7 +105,6 @@ export class NotificationsComponent implements OnInit {
     }
 
     this.actionBusy = true;
-    this.error = '';
 
     this.notificationService
       .clearReadNotifications()
@@ -128,10 +113,7 @@ export class NotificationsComponent implements OnInit {
         next: () => {
           this.notifications = this.notifications.filter((item) => !item.isRead);
         },
-        error: (err) => {
-          this.error = readErrorMessage(err);
-          this.notificationService.error(this.error);
-        }
+        error: (err) => console.error(err)
       });
   }
 
@@ -146,7 +128,6 @@ export class NotificationsComponent implements OnInit {
 
   private loadData() {
     this.loading = true;
-    this.error = '';
 
     return forkJoin({
       page: this.notificationService.getMyNotifications(0, 30, 'notificationId', 'DESC'),
@@ -156,7 +137,7 @@ export class NotificationsComponent implements OnInit {
       catchError((err) => {
         this.notifications = [];
         this.unreadCount = 0;
-        this.error = readErrorMessage(err);
+        console.error(err);
         return of({ page: { content: [] } as { content: NotificationResponse[] }, unread: 0 });
       }),
       switchMap((result) => {

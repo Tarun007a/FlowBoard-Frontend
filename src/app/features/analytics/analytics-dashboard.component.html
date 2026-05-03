@@ -1,0 +1,58 @@
+<div class="analytics-page">
+  <section class="analytics-hero panel">
+    <div>
+      <span class="analytics-kicker">Analytics</span>
+      <h1>Workspace Overview</h1>
+      <p class="muted">A clear snapshot of boards, members, and card progress across your workspaces.</p>
+    </div>
+  </section>
+
+  <section class="analytics-section panel">
+    <header class="analytics-section-head">
+      <div>
+        <h2>Workspaces</h2>
+        <p class="muted">Click a workspace to inspect members, boards, and status details.</p>
+      </div>
+      <strong class="section-count">{{ workspaces.length }}</strong>
+    </header>
+
+    <div *ngIf="loading" class="loading-box">
+      <span class="loading-spinner" aria-hidden="true"></span>
+      Generating analytics for you... this may take some time
+    </div>
+
+    <div class="analytics-grid" *ngIf="!loading && workspaces.length; else overviewEmpty">
+      <article class="analytics-card workspace-card" *ngFor="let workspace of workspaces; trackBy: trackByWorkspaceId" (click)="openWorkspace(workspace.workspaceId)">
+        <header class="analytics-card-head">
+          <div class="workspace-logo" *ngIf="workspace.logoUrl; else workspaceInitial">
+            <img [src]="workspace.logoUrl" [alt]="workspace.name" />
+          </div>
+          <ng-template #workspaceInitial>
+            <div class="workspace-logo">{{ workspace.name.charAt(0).toUpperCase() }}</div>
+          </ng-template>
+          <div>
+            <h3>{{ workspace.name }}</h3>
+            <span class="soft-pill">{{ workspace.isOwner ? 'Owner' : 'Member' }}</span>
+          </div>
+        </header>
+
+        <div class="metric-row">
+          <div class="metric-box">
+            <span>Total boards</span>
+            <strong>{{ workspace.totalBoards }}</strong>
+          </div>
+          <div class="metric-box">
+            <span>Total members</span>
+            <strong>{{ workspace.totalMembers }}</strong>
+          </div>
+        </div>
+
+        <app-status-doughnut [summary]="workspace.cardsSummary"></app-status-doughnut>
+      </article>
+    </div>
+
+    <ng-template #overviewEmpty>
+      <div class="analytics-empty" *ngIf="!loading">No analytics available</div>
+    </ng-template>
+  </section>
+</div>

@@ -2,13 +2,13 @@ import { CommonModule } from '@angular/common';
 import { Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Router } from '@angular/router';
 import { finalize, switchMap } from 'rxjs';
 import { AuthSession, UserDto } from '../../core/models/auth.models';
+import { AuthService } from '../../core/services/auth.service';
 import { AuthStoreService } from '../../core/services/auth-store.service';
 import { CurrentUserProfileService } from '../../core/services/current-user-profile.service';
-import { NotificationService } from '../../core/services/notification.service';
 import { UserService } from '../../core/services/user.service';
-import { readErrorMessage } from '../../core/utils/error.utils';
 
 @Component({
   selector: 'app-profile-page',
@@ -19,17 +19,17 @@ import { readErrorMessage } from '../../core/utils/error.utils';
 })
 export class ProfileComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
+  private readonly auth = inject(AuthService);
   private readonly authStore = inject(AuthStoreService);
   private readonly userService = inject(UserService);
   private readonly profileState = inject(CurrentUserProfileService);
-  private readonly notify = inject(NotificationService);
+  private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
 
   session: AuthSession | null = null;
   profile: UserDto | null = null;
   editing = false;
   saving = false;
-  error = '';
 
   form = this.fb.nonNullable.group({
     fullName: ['', [Validators.required, Validators.minLength(3)]],
@@ -39,6 +39,24 @@ export class ProfileComponent implements OnInit {
   get avatarSeed(): string {
     const name = this.profile?.fullName?.trim() || this.profile?.email?.trim() || 'U';
     return name.charAt(0).toUpperCase();
+  }
+
+  get displayName(): string {
+    return this.profile?.fullName?.trim() || 'User Profile';
+  }
+
+  get displayEmail(): string {
+    return this.profile?.email?.trim() || this.session?.email || '-';
+  }
+
+  get displayUsername(): string {
+    const email = this.profile?.email?.trim() || this.session?.email || '';
+    const [username] = email.split('@');
+    return username || '-';
+  }
+
+  get roleLabel(): string {
+    return (this.session?.role || 'USER').toUpperCase();
   }
 
   ngOnInit(): void {
@@ -65,7 +83,6 @@ export class ProfileComponent implements OnInit {
       return;
     }
 
-    this.error = '';
     this.editing = true;
     this.form.reset({
       fullName: this.profile.fullName,
@@ -75,7 +92,6 @@ export class ProfileComponent implements OnInit {
 
   cancelEdit(): void {
     this.editing = false;
-    this.error = '';
 
     if (!this.profile) {
       return;
@@ -88,17 +104,13 @@ export class ProfileComponent implements OnInit {
   }
 
   save(): void {
-    this.error = '';
-
     if (this.form.invalid) {
       this.form.markAllAsTouched();
-      this.notify.error('Please fix validation errors before saving.');
       return;
     }
 
     if (!this.session?.userId) {
-      this.error = 'Unable to determine logged-in user.';
-      this.notify.error(this.error);
+      console.error('Unable to determine logged-in user.');
       return;
     }
 
@@ -118,26 +130,20 @@ export class ProfileComponent implements OnInit {
         next: (profile) => {
           this.profileState.setProfile(profile);
           this.editing = false;
-          this.notify.success('Profile updated successfully');
         },
-        error: (err) => {
-          const message = readErrorMessage(err);
-          this.error = message;
-          this.notify.error(message || 'Failed to update profile');
-        }
+        error: (err) => console.error(err)
       });
   }
 
-  private loadProfile(): void {
-    this.error = '';
+  logout(): void {
+    this.auth.logout();
+    this.router.navigate(['/login']);
+  }
 
+  private loadProfile(): void {
     this.profileState.loadProfile().subscribe({
       next: () => void 0,
-      error: (err) => {
-        const message = readErrorMessage(err);
-        this.error = message;
-        this.notify.error(message || 'Failed to load profile');
-      }
+      error: (err) => console.error(err)
     });
   }
 }

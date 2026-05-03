@@ -10,10 +10,7 @@
       <button class="button accent" type="button" (click)="openAddMemberDialog()">Add Member</button>
     </div>
   </div>
-
-  <p class="error" *ngIf="error">{{ error }}</p>
-
-  <div class="empty-state" *ngIf="!loading && !error && !members.length">
+  <div class="empty-state" *ngIf="!loading && !members.length">
     <div class="badge">No members yet</div>
     <p class="muted">Add the first member to start collaboration in this board.</p>
   </div>

@@ -3,8 +3,6 @@ import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { finalize } from 'rxjs';
 import { BoardService } from '../../core/services/board.service';
-import { NotificationService } from '../../core/services/notification.service';
-import { readErrorMessage } from '../../core/utils/error.utils';
 
 @Component({
   selector: 'app-add-board-member',
@@ -16,14 +14,12 @@ import { readErrorMessage } from '../../core/utils/error.utils';
 export class AddBoardMemberComponent {
   private readonly fb = inject(FormBuilder);
   private readonly boardService = inject(BoardService);
-  private readonly notify = inject(NotificationService);
 
   @Input({ required: true }) boardId!: number;
   @Output() cancel = new EventEmitter<void>();
   @Output() saved = new EventEmitter<void>();
 
   submitting = false;
-  error = '';
 
   form = this.fb.nonNullable.group({
     userId: [null as number | null, [Validators.required, Validators.min(1)]]
@@ -38,21 +34,19 @@ export class AddBoardMemberComponent {
   }
 
   submit(): void {
-    this.error = '';
-
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
     }
 
     if (!this.boardId) {
-      this.error = 'Board id is required.';
+      console.error('Board id is required.');
       return;
     }
 
     const userId = this.form.getRawValue().userId;
     if (!userId) {
-      this.error = 'User id is required.';
+      console.error('User id is required.');
       return;
     }
 
@@ -65,11 +59,7 @@ export class AddBoardMemberComponent {
           this.form.reset({ userId: null });
           this.saved.emit();
         },
-        error: (err) => {
-          const message = readErrorMessage(err);
-          this.error = message;
-          this.notify.error(message);
-        }
+        error: (err) => console.error(err)
       });
   }
 }

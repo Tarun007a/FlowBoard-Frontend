@@ -1,87 +1,136 @@
-<div class="profile-page stack">
-      <section class="panel profile-header" *ngIf="profile; else loadingState">
-        <div class="profile-left">
-          <div class="avatar-frame" *ngIf="profile.avatarUrl; else initialsAvatar">
-            <img [src]="profile.avatarUrl" alt="Profile avatar" />
-          </div>
-          <ng-template #initialsAvatar>
-            <div class="avatar-fallback">{{ avatarSeed }}</div>
-          </ng-template>
-        </div>
+<div class="profile-page" *ngIf="profile; else loadingState">
+  <aside class="identity-card">
+    <div class="avatar-shell" *ngIf="profile.avatarUrl; else initialsAvatar">
+      <img [src]="profile.avatarUrl" alt="Profile avatar" />
+    </div>
+    <ng-template #initialsAvatar>
+      <div class="avatar-shell avatar-fallback">{{ avatarSeed }}</div>
+    </ng-template>
 
-        <div class="profile-right">
-          <div class="badge">My Profile</div>
-          <h1>{{ profile.fullName || 'User Profile' }}</h1>
-          <p class="muted">Manage your personal details available in the current backend profile DTO.</p>
-
-          <div class="details-grid">
-            <article class="detail-item">
-              <span class="detail-label">Full Name</span>
-              <strong>{{ profile.fullName || '-' }}</strong>
-            </article>
-            <article class="detail-item">
-              <span class="detail-label">Email</span>
-              <strong>{{ profile.email || '-' }}</strong>
-            </article>
-            <article class="detail-item">
-              <span class="detail-label">User ID</span>
-              <strong>{{ profile.userId }}</strong>
-            </article>
-            <article class="detail-item">
-              <span class="detail-label">Role</span>
-              <strong>{{ session?.role || '-' }}</strong>
-            </article>
-          </div>
-
-          <div class="actions">
-            <button class="button accent" type="button" *ngIf="!editing" (click)="startEdit()">Edit Profile</button>
-          </div>
-        </div>
-      </section>
-
-      <section class="panel edit-card stack" *ngIf="editing">
-        <header class="edit-head">
-          <h2 class="section-title">Update Profile</h2>
-          <p class="muted">Only fields supported by backend update DTO are editable.</p>
-        </header>
-
-        <form class="stack" [formGroup]="form" (ngSubmit)="save()">
-          <div class="grid cols-2">
-            <div class="field">
-              <label for="fullName">Full Name</label>
-              <input id="fullName" type="text" formControlName="fullName" placeholder="Enter full name" />
-              <small class="error" *ngIf="form.controls.fullName.touched && form.controls.fullName.invalid">
-                Full name is required (min 3 characters).
-              </small>
-            </div>
-
-            <div class="field">
-              <label for="email">Email (Read only)</label>
-              <input id="email" type="email" [value]="profile?.email || ''" readonly />
-            </div>
-
-            <div class="field full">
-              <label for="avatarUrl">Profile Image URL</label>
-              <input id="avatarUrl" type="text" formControlName="avatarUrl" placeholder="https://example.com/avatar.png" />
-            </div>
-          </div>
-
-          <p class="error" *ngIf="error">{{ error }}</p>
-
-          <div class="actions">
-            <button class="button accent" type="submit" [disabled]="saving || form.invalid">
-              {{ saving ? 'Saving...' : 'Save Changes' }}
-            </button>
-            <button class="button secondary" type="button" [disabled]="saving" (click)="cancelEdit()">Cancel</button>
-          </div>
-        </form>
-      </section>
+    <div class="identity-copy">
+      <span class="eyebrow">Account Profile</span>
+      <h1>{{ displayName }}</h1>
+      <p>{{ displayEmail }}</p>
     </div>
 
-    <ng-template #loadingState>
-      <section class="panel loading-card stack">
-        <div class="badge">Profile</div>
-        <h2 class="section-title">Loading your profile</h2>
-        <p class="muted">Please wait while we fetch your profile details.</p>
-      </section>
-    </ng-template>
+    <div class="identity-badges">
+      <span class="role-badge">{{ roleLabel }}</span>
+    </div>
+
+    <div class="identity-meta">
+      <span>User ID</span>
+      <strong>#{{ profile.userId }}</strong>
+    </div>
+  </aside>
+
+  <main class="profile-content">
+    <section class="content-card hero-card">
+      <div>
+        <span class="badge">My Profile</span>
+        <h2>Personal account settings</h2>
+        <p class="muted">Manage the core profile details connected to your FlowBoard account.</p>
+      </div>
+      <button class="button accent" type="button" *ngIf="!editing" (click)="startEdit()">Edit Profile</button>
+    </section>
+
+    <section class="content-card">
+      <div class="section-head">
+        <div>
+          <h2 class="section-title">Personal Information</h2>
+          <p class="muted">Your visible account identity and contact details.</p>
+        </div>
+      </div>
+
+      <div class="info-grid">
+        <article class="info-row">
+          <span>Full Name</span>
+          <strong>{{ profile.fullName || '-' }}</strong>
+        </article>
+        <article class="info-row">
+          <span>Username</span>
+          <strong>{{ displayUsername }}</strong>
+        </article>
+        <article class="info-row">
+          <span>Email</span>
+          <strong>{{ displayEmail }}</strong>
+        </article>
+        <article class="info-row">
+          <span>Role</span>
+          <strong>{{ roleLabel }}</strong>
+        </article>
+      </div>
+    </section>
+
+    <section class="content-card edit-card" *ngIf="editing">
+      <div class="section-head">
+        <div>
+          <h2 class="section-title">Edit Profile</h2>
+          <p class="muted">Update your display name and optional profile image URL.</p>
+        </div>
+      </div>
+
+      <form class="edit-form" [formGroup]="form" (ngSubmit)="save()">
+        <div class="form-grid">
+          <div class="field">
+            <label for="fullName">Full Name</label>
+            <input id="fullName" type="text" formControlName="fullName" placeholder="Enter full name" />
+            <small class="error" *ngIf="form.controls.fullName.touched && form.controls.fullName.invalid">
+              Full name is required and must be at least 3 characters.
+            </small>
+          </div>
+
+          <div class="field">
+            <label for="email">Email</label>
+            <input id="email" type="email" [value]="profile.email || ''" readonly />
+          </div>
+
+          <div class="field full">
+            <label for="avatarUrl">Profile Image URL</label>
+            <input id="avatarUrl" type="text" formControlName="avatarUrl" placeholder="https://example.com/avatar.png" />
+          </div>
+        </div>
+        <div class="actions">
+          <button class="button accent" type="submit" [disabled]="saving || form.invalid">
+            {{ saving ? 'Saving...' : 'Save Changes' }}
+          </button>
+          <button class="button secondary" type="button" [disabled]="saving" (click)="cancelEdit()">Cancel</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="content-card">
+      <div class="section-head">
+        <div>
+          <h2 class="section-title">Account Actions</h2>
+          <p class="muted">Keep account actions clear and easy to reach.</p>
+        </div>
+      </div>
+
+      <div class="action-list">
+        <button class="action-item" type="button" (click)="startEdit()">
+          <span>
+            <strong>Edit Profile</strong>
+            <small>Change your display name and avatar.</small>
+          </span>
+        </button>
+
+        <button class="action-item danger-action" type="button" (click)="logout()">
+          <span>
+            <strong>Logout</strong>
+            <small>End this FlowBoard session.</small>
+          </span>
+        </button>
+      </div>
+    </section>
+  </main>
+</div>
+
+<ng-template #loadingState>
+  <section class="loading-card">
+    <div>
+      <span class="badge">Profile</span>
+      <h2 class="section-title">Loading your profile</h2>
+      <p class="muted">Please wait while we fetch your profile details.</p>
+    </div>
+  </section>
+</ng-template>

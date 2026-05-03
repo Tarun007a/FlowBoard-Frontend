@@ -18,9 +18,8 @@
         </header>
 
         <div class="notification-state muted" *ngIf="loading">Loading notifications...</div>
-        <p class="error notification-state" *ngIf="!loading && error">{{ error }}</p>
 
-        <ul class="notification-list" *ngIf="!loading && !error && notifications.length">
+        <ul class="notification-list" *ngIf="!loading && notifications.length">
           <li
             class="notification-item"
             *ngFor="let item of notifications"
@@ -46,7 +45,7 @@
           </li>
         </ul>
 
-        <div class="notification-state muted" *ngIf="!loading && !error && !notifications.length">
+        <div class="notification-state muted" *ngIf="!loading && !notifications.length">
           No notifications yet
         </div>
       </section>

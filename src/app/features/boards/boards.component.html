@@ -29,18 +29,12 @@
             <option value="PRIVATE">PRIVATE</option>
           </select>
         </div>
-        <div class="field">
-          <label>Background</label>
-          <input type="text" formControlName="background" placeholder="#0f4c81" />
-        </div>
       </div>
       <div class="actions">
         <button class="button accent" type="submit" [disabled]="form.invalid">Create board</button>
         <button class="button secondary" type="button" (click)="form.reset(defaultForm)">Reset</button>
       </div>
     </form>
-    <p class="error" *ngIf="error">{{ error }}</p>
-    <p class="success" *ngIf="message">{{ message }}</p>
   </section>
 
   <!-- Board list -->
