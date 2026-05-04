@@ -1,0 +1,49 @@
+<div class="analytics-premium-page">
+  <section class="analytics-premium-hero">
+    <div class="hero-copy">
+      <span class="analytics-premium-kicker">Premium Analytics</span>
+      <h1>Unlock the numbers behind your team's momentum</h1>
+      <p>
+        Analytics is a premium FlowBoard service. Upgrade now to reveal workspace health,
+        board progress, member focus, and smart task filters before work starts drifting.
+      </p>
+
+      <div class="hero-actions">
+        <a class="button accent" routerLink="/subscription/plans">Take Premium Now</a>
+        <a class="button secondary" routerLink="/subscription/my">Check My Plan</a>
+      </div>
+    </div>
+
+    <div class="analytics-preview" aria-hidden="true">
+      <div class="preview-head">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+      <div class="preview-metric-row">
+        <div><strong>86%</strong><span>On track</span></div>
+        <div><strong>24</strong><span>Done</span></div>
+      </div>
+      <div class="preview-chart">
+        <span class="bar-one"></span>
+        <span class="bar-two"></span>
+        <span class="bar-three"></span>
+        <span class="bar-four"></span>
+        <span class="bar-five"></span>
+      </div>
+      <div class="preview-list">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+    </div>
+  </section>
+
+  <section class="premium-feature-grid">
+    <article class="premium-feature-card" *ngFor="let feature of features">
+      <span class="feature-mark"></span>
+      <h2>{{ feature.title }}</h2>
+      <p>{{ feature.description }}</p>
+    </article>
+  </section>
+</div>

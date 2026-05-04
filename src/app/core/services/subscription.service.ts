@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable, tap } from 'rxjs';
+import { BehaviorSubject, Observable, map, of, tap } from 'rxjs';
 import {
   PaymentVerificationDto,
   RazorPayResponseDto,
@@ -18,6 +18,16 @@ export class SubscriptionService {
 
   getCurrentSnapshot(): SubscriptionResponseDto | null {
     return this.currentSubscriptionSubject.value;
+  }
+
+  hasActiveSubscription(): Observable<boolean> {
+    const snapshot = this.getCurrentSnapshot();
+
+    if (snapshot) {
+      return of(this.isActiveSubscription(snapshot));
+    }
+
+    return this.loadMySubscription().pipe(map((subscription) => this.isActiveSubscription(subscription)));
   }
 
   getPlanDetails(): Observable<SubscriptionPlanResponseDto[]> {
@@ -42,5 +52,27 @@ export class SubscriptionService {
 
   clearCurrentSubscription(): void {
     this.currentSubscriptionSubject.next(null);
+  }
+
+  private isActiveSubscription(subscription: SubscriptionResponseDto): boolean {
+    if (subscription.status.toLowerCase() !== 'active') {
+      return false;
+    }
+
+    if (!subscription.expiryDate) {
+      return true;
+    }
+
+    const expiryDate = new Date(subscription.expiryDate);
+
+    if (Number.isNaN(expiryDate.getTime())) {
+      return true;
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    expiryDate.setHours(0, 0, 0, 0);
+
+    return expiryDate.getTime() >= today.getTime();
   }
 }

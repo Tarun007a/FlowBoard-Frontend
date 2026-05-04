@@ -16,6 +16,7 @@ import { SubscriptionPlansComponent } from './features/subscription/subscription
 import { MySubscriptionComponent } from './features/subscription/my-subscription.component';
 import { AdminDashboardComponent } from './features/admin/admin-dashboard.component';
 import { adminGuard } from './core/guards/admin.guard';
+import { analyticsSubscriptionGuard } from './core/guards/analytics-subscription.guard';
 import { RegisterAdminComponent } from './features/admin/register-admin.component';
 
 export const routes: Routes = [
@@ -44,23 +45,32 @@ export const routes: Routes = [
 			{ path: 'subscription/my', component: MySubscriptionComponent },
 			{ path: 'profile', component: ProfileComponent },
 			{
+				path: 'analytics/premium',
+				loadComponent: () => import('./features/analytics/analytics-premium.component').then((m) => m.AnalyticsPremiumComponent)
+			},
+			{
 				path: 'analytics',
+				canActivate: [analyticsSubscriptionGuard],
 				loadComponent: () => import('./features/analytics/analytics-dashboard.component').then((m) => m.AnalyticsDashboardComponent)
 			},
 			{
 				path: 'analytics/workspace/:id',
+				canActivate: [analyticsSubscriptionGuard],
 				loadComponent: () => import('./features/analytics/workspace-analytics.component').then((m) => m.WorkspaceAnalyticsComponent)
 			},
 			{
 				path: 'analytics/filter/:workspaceId',
+				canActivate: [analyticsSubscriptionGuard],
 				loadComponent: () => import('./features/analytics/smart-filter.component').then((m) => m.SmartFilterComponent)
 			},
 			{
 				path: 'analytics/member/:userId',
+				canActivate: [analyticsSubscriptionGuard],
 				loadComponent: () => import('./features/analytics/member-analytics.component').then((m) => m.MemberAnalyticsComponent)
 			},
 			{
 				path: 'analytics/board/:boardId',
+				canActivate: [analyticsSubscriptionGuard],
 				loadComponent: () => import('./features/analytics/board-analytics.component').then((m) => m.BoardAnalyticsComponent)
 			},
 			{ path: 'workspace/:id', component: WorkspaceDetailComponent },
