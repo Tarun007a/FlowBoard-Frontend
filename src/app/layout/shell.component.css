@@ -54,6 +54,12 @@
   font-weight: 600;
 }
 
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .top-links a.active {
   color: #ffffff;
   background: rgba(255, 255, 255, 0.18);

@@ -1,0 +1,83 @@
+<div class="filter-page">
+  <header class="filter-header">
+    <div>
+      <span class="filter-kicker">Premium Analytics</span>
+      <h2>Smart Filter</h2>
+      <p>Refine workspace cards across status, due window, board, and assignee.</p>
+    </div>
+    <div class="result-count">
+      <span>Results</span>
+      <strong>{{ cards.length }}</strong>
+    </div>
+  </header>
+
+  <div class="filter-bar" aria-label="Smart filter controls">
+    <select [(ngModel)]="filter.status" (change)="fetchCards()" aria-label="Status filter">
+      <option value="">Any Status</option>
+      <option value="TO_DO">To Do</option>
+      <option value="IN_PROGRESS">In Progress</option>
+      <option value="IN_REVIEW">In Review</option>
+      <option value="DONE">Done</option>
+    </select>
+
+    <select [(ngModel)]="filter.due" (change)="fetchCards()" aria-label="Due filter">
+      <option value="">Any Due</option>
+      <option value="TODAY">Today</option>
+      <option value="THIS_WEEK">This Week</option>
+      <option value="OVERDUE">Overdue</option>
+    </select>
+
+    <select [(ngModel)]="filter.boardId" (change)="fetchCards()" aria-label="Board filter">
+      <option value="">Any Board</option>
+      <option *ngFor="let b of boards; trackBy: trackByBoardId" [value]="b.boardId">
+        {{ b.name }}
+      </option>
+    </select>
+
+    <select [(ngModel)]="filter.assigneeId" (change)="fetchCards()" aria-label="Assignee filter">
+      <option value="">Any User</option>
+      <option *ngFor="let m of members; trackBy: trackByMemberId" [value]="m.userId">
+        User {{ m.userId }}
+      </option>
+    </select>
+  </div>
+
+  <div class="state-box" *ngIf="loading">Loading filter options...</div>
+  <div class="state-box error" *ngIf="error">{{ error }}</div>
+
+  <div class="cards-row" *ngIf="cards.length; else cardsState">
+    <article class="task-card" *ngFor="let c of cards; trackBy: trackByCardId" (click)="openCard(c)">
+      <div class="title">{{ c.title }}</div>
+
+      <div class="meta">
+        <span class="status" [ngClass]="statusClass(c.status)">{{ c.status }}</span>
+        <span class="priority">{{ c.priority || 'No priority' }}</span>
+      </div>
+
+      <div class="due">
+        {{ c.dueDate ? (c.dueDate | date: 'mediumDate') : 'No due date' }}
+      </div>
+    </article>
+  </div>
+
+  <ng-template #cardsState>
+    <div class="state-box" *ngIf="cardsLoading; else emptyCards">Finding matching cards...</div>
+    <ng-template #emptyCards>
+      <div class="state-box" *ngIf="!error">No cards match these filters</div>
+    </ng-template>
+  </ng-template>
+
+  <aside class="side-panel" *ngIf="selectedCard">
+    <button type="button" class="close-btn" (click)="selectedCard = null" aria-label="Close card details">X</button>
+
+    <h3>{{ selectedCard.title }}</h3>
+    <p>{{ selectedCard.description || 'No description provided.' }}</p>
+
+    <div class="detail-list">
+      <div>Status: {{ selectedCard.status }}</div>
+      <div>Priority: {{ selectedCard.priority || 'None' }}</div>
+      <div>Due: {{ selectedCard.dueDate ? (selectedCard.dueDate | date: 'mediumDate') : 'No due date' }}</div>
+      <div>Assignee: {{ selectedCard.assigneeId || 'Unassigned' }}</div>
+    </div>
+  </aside>
+</div>

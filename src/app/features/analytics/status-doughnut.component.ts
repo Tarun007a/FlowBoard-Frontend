@@ -1,9 +1,9 @@
 import { CommonModule } from '@angular/common';
 import { AfterViewInit, Component, ElementRef, Input, OnChanges, OnDestroy, SimpleChanges, ViewChild } from '@angular/core';
-import { ArcElement, Chart, DoughnutController, Legend, Tooltip } from 'chart.js';
+import { ArcElement, Chart, DoughnutController, Legend, PieController, Tooltip } from 'chart.js';
 import { CardStatusSummaryDto } from '../../core/models/analytics.models';
 
-Chart.register(DoughnutController, ArcElement, Tooltip, Legend);
+Chart.register(DoughnutController, PieController, ArcElement, Tooltip, Legend);
 
 interface StatusSlice {
   label: string;
@@ -80,19 +80,18 @@ export class StatusDoughnutComponent implements AfterViewInit, OnChanges, OnDest
   @Input({ required: true }) summary!: CardStatusSummaryDto | null;
   @Input() showLegend = true;
   @Input() compact = false;
+  @Input() chartType: 'doughnut' | 'pie' = 'doughnut';
   @ViewChild('canvas') private canvas?: ElementRef<HTMLCanvasElement>;
 
-  private chart: Chart<'doughnut'> | null = null;
-
-  get slices(): StatusSlice[] {
-    return this.buildSlices();
-  }
+  slices: StatusSlice[] = [];
+  private chart: Chart<'doughnut' | 'pie'> | null = null;
 
   ngAfterViewInit(): void {
     this.renderChart();
   }
 
   ngOnChanges(_: SimpleChanges): void {
+    this.slices = this.buildSlices();
     this.renderChart();
   }
 
@@ -104,13 +103,13 @@ export class StatusDoughnutComponent implements AfterViewInit, OnChanges, OnDest
     const canvas = this.canvas?.nativeElement;
     if (!canvas) return;
 
-    const slices = this.buildSlices();
+    const slices = this.slices.length ? this.slices : this.buildSlices();
     const values = slices.map((item) => item.value);
     const hasData = values.some((value) => value > 0);
 
     this.chart?.destroy();
     this.chart = new Chart(canvas, {
-      type: 'doughnut',
+      type: this.chartType,
       data: {
         labels: slices.map((item) => item.label),
         datasets: [{
@@ -124,7 +123,7 @@ export class StatusDoughnutComponent implements AfterViewInit, OnChanges, OnDest
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        cutout: '68%',
+        cutout: this.chartType === 'doughnut' ? '68%' : 0,
         plugins: {
           legend: { display: false },
           tooltip: { enabled: hasData }

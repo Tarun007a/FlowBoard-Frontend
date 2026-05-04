@@ -36,6 +36,10 @@ export class WorkspaceService {
     );
   }
 
+  createWorkspace(request: WorkspaceRequest) {
+    return this.create(request);
+  }
+
   updateWorkspace(id: number, request: WorkspaceRequest) {
     return this.api.put<WorkspaceResponse>(`/api/v1/workspaces/update/${id}`, request).pipe(
       tap((workspace) => {

@@ -1,95 +1,109 @@
-<div class="analytics-page" *ngIf="workspace; else workspaceState">
-  <section class="analytics-hero panel">
+<div *ngIf="loading" class="analytics-page">
+  <section class="analytics-section panel">
+    <div class="loading-box">
+      <span class="loading-spinner" aria-hidden="true"></span>
+      Generating analytics for you... this may take some time
+    </div>
+  </section>
+</div>
+
+<div class="analytics-page workspace-dashboard" *ngIf="!loading && data as workspace">
+  <section class="analytics-hero panel workspace-dashboard-hero">
     <div>
       <span class="analytics-kicker">Workspace Analytics</span>
       <h1>{{ workspace.name }}</h1>
       <p class="muted">{{ workspace.description || 'No description provided.' }}</p>
     </div>
-    <div class="hero-stat-cluster">
-      <div><span>Boards</span><strong>{{ workspace.totalBoards }}</strong></div>
-      <div><span>Lists</span><strong>{{ workspace.totalLists }}</strong></div>
-      <div><span>Members</span><strong>{{ workspace.totalMembers }}</strong></div>
+    <button class="smart-filter-btn" (click)="openFilter()">
+      Smart Filter
+    </button>
+  </section>
+
+  <section class="summary-row" aria-label="Workspace summary">
+    <div class="summary-card">
+      <span>Total Tasks</span>
+      <strong>{{ workspace.cardsSummary.total }}</strong>
+    </div>
+    <div class="summary-card">
+      <span>Boards</span>
+      <strong>{{ workspace.totalBoards }}</strong>
+    </div>
+    <div class="summary-card">
+      <span>Completion</span>
+      <strong>{{ workspace.cardsSummary.completionRate }}%</strong>
+      <div class="progress-container" aria-hidden="true">
+        <div class="progress-bar" [style.width.%]="workspace.cardsSummary.completionRate"></div>
+      </div>
     </div>
   </section>
 
-  <div class="analytics-two-col">
-    <section class="analytics-section panel">
+  <section class="charts-row workspace-dashboard-charts">
+    <article class="analytics-section panel chart-panel">
       <header class="analytics-section-head">
         <div>
-          <h2>Status Distribution</h2>
+          <h2>Task Distribution</h2>
           <p class="muted">{{ workspace.cardsSummary.total }} total cards</p>
         </div>
-        <span class="soft-pill">{{ workspace.cardsSummary.completionRate }}% done</span>
       </header>
-      <app-status-doughnut [summary]="workspace.cardsSummary"></app-status-doughnut>
-    </section>
+      <app-status-doughnut [summary]="workspace.cardsSummary" [compact]="true"></app-status-doughnut>
+    </article>
 
-    <section class="analytics-section panel">
+    <article class="analytics-section panel chart-panel">
       <header class="analytics-section-head">
         <div>
-          <h2>Total Counts</h2>
-          <p class="muted">Workspace scale at a glance.</p>
+          <h2>Status Volume</h2>
+          <p class="muted">Cards by workflow state</p>
         </div>
       </header>
-      <div class="count-grid">
-        <div class="count-card"><span>Boards</span><strong>{{ workspace.totalBoards }}</strong></div>
-        <div class="count-card"><span>Lists</span><strong>{{ workspace.totalLists }}</strong></div>
-        <div class="count-card"><span>Members</span><strong>{{ workspace.totalMembers }}</strong></div>
-      </div>
-    </section>
-  </div>
+      <app-list-bar-chart [items]="statusChartItems"></app-list-bar-chart>
+    </article>
+  </section>
 
-  <section class="analytics-section panel">
+  <section class="section analytics-section panel">
     <header class="analytics-section-head">
       <div>
         <h2>Members</h2>
-        <p class="muted">Open a member for personal task status.</p>
+        <p class="muted">{{ members.length }} workspace members</p>
       </div>
       <strong class="section-count">{{ members.length }}</strong>
     </header>
-    <div class="analytics-list" *ngIf="members.length; else noMembers">
-      <button class="list-row" type="button" *ngFor="let member of members; trackBy: trackByMemberId" (click)="openMember(member.userId)">
-        <strong>User #{{ member.userId }}</strong>
-        <span>Joined {{ member.joinedAt | date: 'medium' }}</span>
-      </button>
+
+    <div class="scroll-row" *ngIf="members.length; else noMembers">
+      <article class="member-card" *ngFor="let member of members; trackBy: trackByMemberId" (click)="openMember(member)">
+        <div>User {{ member.userId }}</div>
+        <small>Joined {{ member.joinedAt | date: 'mediumDate' }}</small>
+      </article>
     </div>
-    <ng-template #noMembers><div class="analytics-empty">No analytics available</div></ng-template>
+    <ng-template #noMembers>
+      <div class="analytics-empty">No members available</div>
+    </ng-template>
   </section>
 
-  <section class="analytics-section panel">
+  <section class="section analytics-section panel">
     <header class="analytics-section-head">
       <div>
         <h2>Boards</h2>
-        <p class="muted">Open a board to review lists and filtered cards.</p>
+        <p class="muted">{{ boards.length }} boards in this workspace</p>
       </div>
       <strong class="section-count">{{ boards.length }}</strong>
     </header>
-    <div class="board-grid" *ngIf="boards.length; else noBoards">
-      <article class="board-analytics-card" *ngFor="let board of boards; trackBy: trackByBoardId" (click)="openBoard(board.boardId)">
-        <div>
-          <h3>{{ board.name }}</h3>
-          <p>{{ board.description || 'No description provided.' }}</p>
-        </div>
-        <footer>
-          <span class="soft-pill">{{ board.visibility }}</span>
-          <span class="soft-pill">{{ board.isClosed ? 'Closed' : 'Open' }}</span>
-        </footer>
+
+    <div class="scroll-row" *ngIf="boards.length; else noBoards">
+      <article class="board-card horizontal-card" *ngFor="let board of boards; trackBy: trackByBoardId" (click)="openBoard(board)">
+        <div>{{ board.name }}</div>
+        <small>{{ board.visibility }} - {{ board.isClosed ? 'Closed' : 'Open' }}</small>
       </article>
     </div>
-    <ng-template #noBoards><div class="analytics-empty">No analytics available</div></ng-template>
+    <ng-template #noBoards>
+      <div class="analytics-empty">No boards available</div>
+    </ng-template>
   </section>
 </div>
 
-<ng-template #workspaceState>
+<div *ngIf="!loading && !data">
   <div class="analytics-page">
     <section class="analytics-section panel">
-      <div *ngIf="loading; else noWorkspaceAnalytics" class="loading-box">
-        <span class="loading-spinner" aria-hidden="true"></span>
-        Generating analytics for you... this may take some time
-      </div>
-      <ng-template #noWorkspaceAnalytics>
-        <div class="analytics-empty">No analytics available</div>
-      </ng-template>
+      <div class="analytics-empty">No analytics available</div>
     </section>
   </div>
-</ng-template>
+</div>

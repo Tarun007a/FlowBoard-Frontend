@@ -5,12 +5,13 @@ import { ActivatedRoute } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { AnalyticsStatusFilter, BoardAnalyticsDto, CardDto, DueFilter, ListDto } from '../../core/models/analytics.models';
 import { AnalyticsService } from '../../core/services/analytics.service';
+import { ListBarChartComponent, ListBarChartItem } from './list-bar-chart.component';
 import { StatusDoughnutComponent } from './status-doughnut.component';
 
 @Component({
   selector: 'app-board-analytics',
   standalone: true,
-  imports: [CommonModule, FormsModule, StatusDoughnutComponent],
+  imports: [CommonModule, FormsModule, StatusDoughnutComponent, ListBarChartComponent],
   templateUrl: './board-analytics.component.html',
   styleUrl: './analytics.component.css'
 })
@@ -24,6 +25,7 @@ export class BoardAnalyticsComponent implements OnInit {
   board: BoardAnalyticsDto | null = null;
   lists: ListDto[] = [];
   cards: CardDto[] = [];
+  listCardCounts: ListBarChartItem[] = [];
   statusFilter: AnalyticsStatusFilter = 'ALL';
   dueFilter: DueFilter = 'ALL';
   loading = false;
@@ -89,6 +91,7 @@ export class BoardAnalyticsComponent implements OnInit {
           this.board = null;
           this.lists = [];
           this.cards = [];
+          this.listCardCounts = [];
           this.loading = false;
           this.cardsLoading = false;
         }
@@ -107,11 +110,16 @@ export class BoardAnalyticsComponent implements OnInit {
       .subscribe({
         next: (cards) => {
           this.cards = cards ?? [];
+          this.listCardCounts = this.lists.map((list) => ({
+            label: list.name,
+            value: this.cards.filter((card) => card.listId === list.listId).length
+          }));
           this.cardsLoading = false;
         },
         error: (err) => {
           console.error(err);
           this.cards = [];
+          this.listCardCounts = this.lists.map((list) => ({ label: list.name, value: 0 }));
           this.cardsLoading = false;
         }
       });

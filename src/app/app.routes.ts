@@ -52,6 +52,10 @@ export const routes: Routes = [
 				loadComponent: () => import('./features/analytics/workspace-analytics.component').then((m) => m.WorkspaceAnalyticsComponent)
 			},
 			{
+				path: 'analytics/filter/:workspaceId',
+				loadComponent: () => import('./features/analytics/smart-filter.component').then((m) => m.SmartFilterComponent)
+			},
+			{
 				path: 'analytics/member/:userId',
 				loadComponent: () => import('./features/analytics/member-analytics.component').then((m) => m.MemberAnalyticsComponent)
 			},

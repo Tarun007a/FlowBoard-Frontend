@@ -21,27 +21,37 @@
       Generating analytics for you... this may take some time
     </div>
 
-    <div class="analytics-grid" *ngIf="!loading && workspaces.length; else overviewEmpty">
-      <article class="analytics-card workspace-card" *ngFor="let workspace of workspaces; trackBy: trackByWorkspaceId" (click)="openWorkspace(workspace.workspaceId)">
-        <header class="workspace-card-top">
-          <h3>{{ workspace.name }}</h3>
-          <span class="owner-star" *ngIf="workspace.isOwner" title="Owner" aria-label="Owner">&#9733;</span>
+    <div class="analytics-grid workspace-card-grid" *ngIf="!loading && workspaces.length; else overviewEmpty">
+      <article class="analytics-card analytics-workspace-card" *ngFor="let workspace of workspaces; trackBy: trackByWorkspaceId" (click)="openWorkspace(workspace.workspaceId)">
+        <header class="analytics-workspace-card-top">
+          <div class="card-title">
+            <h3>{{ workspace.name }}</h3>
+            <span class="workspace-card-subtitle">{{ workspace.cardsSummary.total }} total tasks</span>
+          </div>
+          <span class="analytics-owner-star" *ngIf="workspace.isOwner" title="Owner" aria-label="Owner">&#9733;</span>
         </header>
 
-        <div class="workspace-stat-row">
-          <div class="workspace-stat">
+        <div class="analytics-workspace-chart-block chart-container">
+          <app-status-doughnut [summary]="workspace.cardsSummary" [showLegend]="false" [compact]="true"></app-status-doughnut>
+          <span class="chart-label">Task Status Distribution</span>
+        </div>
+
+        <div class="analytics-workspace-stat-row top-stats">
+          <div class="analytics-workspace-stat">
             <span>Boards</span>
             <strong>{{ workspace.totalBoards }}</strong>
           </div>
-          <div class="workspace-stat">
+          <div class="analytics-workspace-stat">
             <span>Members</span>
             <strong>{{ workspace.totalMembers }}</strong>
           </div>
         </div>
 
-        <div class="workspace-chart-block">
-          <span class="chart-label">Task Status Distribution</span>
-          <app-status-doughnut [summary]="workspace.cardsSummary" [showLegend]="false" [compact]="true"></app-status-doughnut>
+        <div class="workspace-card-status-list status-grid">
+          <div class="status-box"><span>To Do</span><strong>{{ workspace.cardsSummary.toDo }}</strong></div>
+          <div class="status-box"><span>In Progress</span><strong>{{ workspace.cardsSummary.inProgress }}</strong></div>
+          <div class="status-box"><span>Review</span><strong>{{ workspace.cardsSummary.inReview }}</strong></div>
+          <div class="status-box"><span>Done</span><strong>{{ workspace.cardsSummary.done }}</strong></div>
         </div>
       </article>
     </div>

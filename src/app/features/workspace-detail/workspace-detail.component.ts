@@ -202,6 +202,10 @@ export class WorkspaceDetailComponent implements OnInit {
     return board.createdById === this.session.userId || this.workspace?.ownerId === this.session.userId;
   }
 
+  canDeleteBoard(_: BoardResponse): boolean {
+    return this.canManageWorkspace;
+  }
+
   openBoardUpdateModal(board: BoardResponse, event?: Event): void {
     event?.preventDefault();
     event?.stopPropagation();
@@ -247,6 +251,25 @@ export class WorkspaceDetailComponent implements OnInit {
         },
         error: (err) => console.error(err)
       });
+  }
+
+  deleteBoard(board: BoardResponse, event?: Event): void {
+    event?.preventDefault();
+    event?.stopPropagation();
+    if (!this.canDeleteBoard(board)) return;
+
+    const confirmDelete = window.confirm('Are you sure you want to delete this board?');
+    if (!confirmDelete) return;
+
+    this.boardService.deleteBoard(board.boardId).subscribe({
+      next: () => {
+        console.log('Board deleted');
+        this.boards = this.boards.filter((item) => item.boardId !== board.boardId);
+        const { [board.boardId]: _removed, ...nextMeta } = this.boardMeta;
+        this.boardMeta = nextMeta;
+      },
+      error: (err) => console.error(err)
+    });
   }
 
   // Called when user clicks a board card - marks it as "opening" to show a loading state

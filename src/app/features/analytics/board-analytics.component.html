@@ -3,14 +3,14 @@
     <div>
       <span class="analytics-kicker">Board Analytics</span>
       <h1>{{ board.name }}</h1>
-      <p class="muted">{{ board.visibility }} board · {{ board.isClosed ? 'Closed' : 'Open' }}</p>
+      <p class="muted">{{ board.visibility }} board - {{ board.isClosed ? 'Closed' : 'Open' }}</p>
     </div>
     <div class="hero-stat-cluster">
       <div><span>Total lists</span><strong>{{ board.totalLists }}</strong></div>
     </div>
   </section>
 
-  <div class="analytics-two-col">
+  <div class="analytics-two-col charts-row">
     <section class="analytics-section panel">
       <header class="analytics-section-head">
         <div>
@@ -19,23 +19,18 @@
         </div>
         <span class="soft-pill">{{ board.cardsSummary.completionRate }}% done</span>
       </header>
-      <app-status-doughnut [summary]="board.cardsSummary"></app-status-doughnut>
+      <app-status-doughnut [summary]="board.cardsSummary" [compact]="true"></app-status-doughnut>
     </section>
 
     <section class="analytics-section panel">
       <header class="analytics-section-head">
         <div>
-          <h2>Lists</h2>
-          <p class="muted">Board list structure.</p>
+          <h2>Cards by List</h2>
+          <p class="muted">Cards currently matching the filters.</p>
         </div>
         <strong class="section-count">{{ lists.length }}</strong>
       </header>
-      <div class="compact-list" *ngIf="lists.length; else noLists">
-        <div class="compact-row" *ngFor="let list of lists; trackBy: trackByListId">
-          <strong>{{ list.name }}</strong>
-          <span>Position {{ list.position }}</span>
-        </div>
-      </div>
+      <app-list-bar-chart *ngIf="lists.length; else noLists" [items]="listCardCounts"></app-list-bar-chart>
       <ng-template #noLists><div class="analytics-empty">No analytics available</div></ng-template>
     </section>
   </div>
@@ -62,15 +57,13 @@
       </div>
     </header>
 
-    <div class="card-result-list" *ngIf="cards.length; else noCards">
+    <div class="card-result-list compact-card-grid" *ngIf="cards.length; else noCards">
       <article class="card-result" *ngFor="let card of cards; trackBy: trackByCardId">
         <div>
           <h3>{{ card.title }}</h3>
-          <p class="muted">{{ card.description || 'No description provided.' }}</p>
         </div>
         <div class="card-result-meta">
           <span class="status-pill" [ngClass]="statusClass(card.status)">{{ card.status }}</span>
-          <span class="soft-pill">{{ card.priority || 'No priority' }}</span>
           <span class="due-pill" [ngClass]="dueClass(card.dueDate)">{{ card.dueDate ? (card.dueDate | date: 'mediumDate') : 'No due date' }}</span>
         </div>
       </article>

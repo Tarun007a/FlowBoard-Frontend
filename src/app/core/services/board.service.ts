@@ -54,6 +54,10 @@ export class BoardService {
     );
   }
 
+  deleteBoard(boardId: number) {
+    return this.delete(boardId);
+  }
+
   get(boardId: number) {
     return this.api.get<BoardResponse>(`/api/v1/boards/get/${boardId}`);
   }

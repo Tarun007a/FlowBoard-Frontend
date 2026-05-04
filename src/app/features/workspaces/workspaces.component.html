@@ -1,4 +1,4 @@
-<div class="workspace-page">
+<div class="workspace-page page-container">
   <!-- Page header with "Create Workspace" button -->
   <section class="workspace-hero panel">
     <div>
@@ -7,7 +7,7 @@
       <p class="muted">Manage your workspaces from one clean view.</p>
     </div>
     <div class="hero-actions">
-      <button class="button accent" type="button" (click)="openCreateModal()">Create Workspace</button>
+      <button class="button accent" type="button" (click)="openCreateWorkspace()">Create Workspace</button>
     </div>
   </section>
 
@@ -28,36 +28,21 @@
           *ngFor="let workspace of combinedWorkspaces; trackBy: trackByWorkspaceId"
           [class.card-loading]="openingWorkspaceId === workspace.workspaceId"
           [attr.aria-busy]="openingWorkspaceId === workspace.workspaceId"
-          [ngStyle]="{ 'background': workspaceGradient(workspace.workspaceId) }"
           (click)="openWorkspace(workspace)">
 
-          <div class="card-top">
+          <div class="card-header">
             <span class="visibility-pill">{{ workspace.visibility }}</span>
-            <!-- Star icon shown only on workspaces you own -->
-            <div class="owner-star" *ngIf="isOwner(workspace)" title="My Workspace" aria-label="My Workspace">
-              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                <path d="M12 2.75l2.85 5.78 6.37.93-4.61 4.49 1.09 6.35L12 17.3 6.3 20.3l1.09-6.35-4.61-4.49 6.37-.93L12 2.75z" />
-              </svg>
-            </div>
+            <span class="star" *ngIf="isOwner(workspace)" title="My Workspace" aria-label="My Workspace">&#9733;</span>
           </div>
 
-          <header class="card-head">
-            <h3>{{ workspace.name }}</h3>
-          </header>
+          <div class="card-title">{{ workspace.name }}</div>
 
-          <p class="card-description">{{ workspace.description || 'No description provided.' }}</p>
-          <p class="card-role">{{ isOwner(workspace) ? 'Owner' : 'Member' }}</p>
+          <div class="card-desc">{{ workspace.description || 'No description provided.' }}</div>
 
-          <footer class="card-stats">
-            <div>
-              <span class="label">Members</span>
-              <strong>{{ asCount(metaFor(workspace.workspaceId).memberCount) }}</strong>
-            </div>
-            <div>
-              <span class="label">Boards</span>
-              <strong>{{ asCount(metaFor(workspace.workspaceId).boardCount) }}</strong>
-            </div>
-          </footer>
+          <div class="stats-row">
+            <span>&#128101; {{ asCount(metaFor(workspace.workspaceId).memberCount) }}</span>
+            <span>&#128203; {{ asCount(metaFor(workspace.workspaceId).boardCount) }}</span>
+          </div>
         </article>
       </div>
 
@@ -68,7 +53,7 @@
             <h3>No workspaces yet</h3>
             <p class="muted">Create your first workspace or ask your team to add you.</p>
           </div>
-          <button class="button accent" type="button" (click)="openCreateModal()">Create Workspace</button>
+          <button class="button accent" type="button" (click)="openCreateWorkspace()">Create Workspace</button>
         </section>
       </ng-template>
     </section>
@@ -119,7 +104,7 @@
 </div>
 
 <!-- Create workspace modal (dialog) -->
-<div class="modal-overlay" *ngIf="showCreateModal" (click)="closeCreateModal()">
+<div class="modal-overlay modal" *ngIf="showCreateModal" (click)="closeCreateModal()">
   <!-- stopPropagation prevents clicks inside the modal from closing it -->
   <section class="panel modal-card" (click)="$event.stopPropagation()">
     <header class="modal-head">
@@ -127,7 +112,7 @@
         <div class="hero-badge">Workspace</div>
         <h2>Create workspace</h2>
       </div>
-      <button class="button secondary" type="button" (click)="closeCreateModal()">Close</button>
+      <button class="button secondary modal-close-button" type="button" (click)="closeCreateModal()">Close</button>
     </header>
 
     <form class="stack" [formGroup]="form" (ngSubmit)="createWorkspace()">
@@ -147,7 +132,7 @@
         </select>
       </div>
       <div class="actions">
-        <button class="button accent" type="submit" [disabled]="creatingWorkspace || form.invalid">
+        <button class="button accent" type="submit" [disabled]="creatingWorkspace">
           {{ creatingWorkspace ? 'Creating...' : 'Create Workspace' }}
         </button>
         <button class="button secondary" type="button" (click)="form.reset(defaultForm)">Reset</button>

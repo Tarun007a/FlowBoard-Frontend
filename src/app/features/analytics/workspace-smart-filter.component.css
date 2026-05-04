@@ -1,0 +1,11 @@
+.smart-filter-btn {
+  flex: 0 0 auto;
+  border: 0;
+  padding: 8px 14px;
+  border-radius: 10px;
+  background: #3b82f6;
+  color: white;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}

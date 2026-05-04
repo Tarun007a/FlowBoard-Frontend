@@ -34,13 +34,13 @@ export class WorkspacesComponent implements OnInit {
   readonly defaultForm = {
     name: '',
     description: '',
-    visibility: 'PUBLIC' as Visibility
+    visibility: 'PRIVATE' as Visibility
   };
 
   form = this.fb.nonNullable.group({
-    name: ['', [Validators.required, Validators.minLength(2)]],
-    description: ['', [Validators.required, Validators.minLength(2)]],
-    visibility: ['PUBLIC' as Visibility, [Validators.required]]
+    name: ['', [Validators.required]],
+    description: [''],
+    visibility: ['PRIVATE' as Visibility, [Validators.required]]
   });
 
   session: AuthSession | null = null;
@@ -62,6 +62,11 @@ export class WorkspacesComponent implements OnInit {
   }
 
   openCreateModal(): void {
+    this.openCreateWorkspace();
+  }
+
+  openCreateWorkspace(): void {
+    console.log('OPEN CREATE CLICKED');
     this.showCreateModal = true;
   }
 
@@ -70,7 +75,10 @@ export class WorkspacesComponent implements OnInit {
   }
 
   createWorkspace(): void {
+    console.log('SUBMIT TRIGGERED');
+
     if (this.form.invalid) {
+      console.log('FORM INVALID', this.form.value);
       this.form.markAllAsTouched();
       return;
     }
@@ -80,19 +88,22 @@ export class WorkspacesComponent implements OnInit {
     const payload: WorkspaceRequest = {
       name: value.name,
       description: value.description,
-      visibility: value.visibility
+      visibility: value.visibility,
+      logoUrl: 'default-logo'
     };
 
-    this.workspaceService.create(payload)
+    console.log('PAYLOAD:', payload);
+
+    this.workspaceService.createWorkspace(payload)
       .pipe(finalize(() => (this.creatingWorkspace = false)))
       .subscribe({
         next: (created) => {
+          console.log('API SUCCESS', created);
           this.addCreatedWorkspaceToView(created);
           this.form.reset(this.defaultForm);
           this.showCreateModal = false;
-          this.loadWorkspaceSections();
         },
-        error: (err) => console.error(err)
+        error: (err) => console.error('Create failed', err)
       });
   }
 
