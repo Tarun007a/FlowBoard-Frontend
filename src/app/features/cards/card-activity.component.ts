@@ -1,32 +1,74 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, inject } from '@angular/core';
-import { CardActivityResponse } from '../../core/models/card.models';
+import { Component, OnInit, inject } from '@angular/core';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { CardActivityResponse, CardResponse } from '../../core/models/card.models';
 import { CardService } from '../../core/services/card.service';
 
 @Component({
   selector: 'app-card-activity',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterLink],
   templateUrl: './card-activity.component.html',
   styleUrl: './card-activity.component.css'
 })
-export class CardActivityComponent implements OnChanges {
+export class CardActivityComponent implements OnInit {
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly cardService = inject(CardService);
 
-  @Input({ required: true }) cardId!: number;
-  @Output() closed = new EventEmitter<void>();
+  cardId = 0;
+  card: CardResponse | null = null;
+  assigneeName: string | null = null;
 
   activities: CardActivityResponse[] = [];
   loading = false;
+  loadingCard = false;
+  page = 0;
+  size = 10;
+  totalPages = 0;
+  totalElements = 0;
 
-  ngOnChanges(changes: SimpleChanges): void {
-    if (changes['cardId'] && this.cardId) {
-      this.loadActivities();
+  ngOnInit(): void {
+    this.cardId = Number(this.route.snapshot.paramMap.get('cardId') ?? 0);
+    const navigationState = this.router.getCurrentNavigation()?.extras.state as {
+      card?: CardResponse;
+      assigneeName?: string | null;
+    } | undefined;
+
+    this.card = navigationState?.card ?? history.state?.card ?? null;
+    this.assigneeName = navigationState?.assigneeName ?? history.state?.assigneeName ?? null;
+
+    if (!this.cardId) {
+      return;
     }
+
+    if (!this.card || this.card.cardId !== this.cardId) {
+      this.loadCard();
+    }
+
+    this.loadActivities();
   }
 
-  close(): void {
-    this.closed.emit();
+  get boardLink(): Array<string | number> {
+    if (this.card?.boardId) {
+      return ['/board', this.card.boardId];
+    }
+
+    return ['/workspaces'];
+  }
+
+  nextPage(): void {
+    if (this.page + 1 >= this.totalPages) return;
+
+    this.page++;
+    this.loadActivities();
+  }
+
+  prevPage(): void {
+    if (this.page === 0) return;
+
+    this.page--;
+    this.loadActivities();
   }
 
   formatActivityType(value: string): string {
@@ -47,18 +89,36 @@ export class CardActivityComponent implements OnChanges {
     });
   }
 
+  readableStatus(value: string | null): string {
+    return value ? value.replace(/_/g, ' ') : '-';
+  }
+
   private loadActivities(): void {
     this.loading = true;
-    this.cardService.getCardActivities(this.cardId).subscribe({
+    this.cardService.getCardActivities(this.cardId, this.page, this.size).subscribe({
       next: (page) => {
-        this.activities = [...page.content].sort((left, right) =>
-          new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime()
-        );
+        this.activities = page.content;
+        this.totalPages = page.totalPages;
+        this.totalElements = page.totalNumberOfElements;
         this.loading = false;
       },
       error: (err) => {
         console.error(err);
         this.loading = false;
+      }
+    });
+  }
+
+  private loadCard(): void {
+    this.loadingCard = true;
+    this.cardService.get(this.cardId).subscribe({
+      next: (card) => {
+        this.card = card;
+        this.loadingCard = false;
+      },
+      error: (err) => {
+        console.error(err);
+        this.loadingCard = false;
       }
     });
   }

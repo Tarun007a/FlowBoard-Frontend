@@ -1,40 +1,86 @@
-<div class="activity-overlay" (click)="close()">
-  <aside class="activity-drawer panel" (click)="$event.stopPropagation()">
-    <header class="activity-head">
+<section class="activity-page">
+  <header class="activity-hero">
+    <div>
+      <div class="badge">Card Activity</div>
+      <h1>Activity timeline</h1>
+      <p class="muted">Review changes, updates, and recent actions for this card.</p>
+    </div>
+    <a class="button secondary" [routerLink]="boardLink">Back</a>
+  </header>
+
+  <section class="card-summary panel" *ngIf="card; else cardLoadingState">
+    <div class="summary-head">
       <div>
-        <div class="badge">Activity</div>
-        <h3>Card Activity</h3>
+        <h2>{{ card.title }}</h2>
+        <p>{{ card.description || 'No description provided for this card yet.' }}</p>
       </div>
-      <button class="button secondary" type="button" (click)="close()">Close</button>
-    </header>
+      <span class="summary-id">Card #{{ card.cardId }}</span>
+    </div>
+
+    <div class="meta-row">
+      <span>Status: {{ readableStatus(card.status) }}</span>
+      <span>Priority: {{ card.priority || '-' }}</span>
+      <span>Assignee: {{ assigneeName || (card.assigneeId ? ('User ' + card.assigneeId) : '-') }}</span>
+      <span>Created: {{ formatDate(card.createdAt) }}</span>
+    </div>
+  </section>
+
+  <ng-template #cardLoadingState>
+    <section class="card-summary panel">
+      <p class="muted" *ngIf="loadingCard">Loading card details...</p>
+      <p class="muted" *ngIf="!loadingCard">Card details unavailable.</p>
+    </section>
+  </ng-template>
+
+  <section class="panel activity-section">
+    <div class="activity-section-head">
+      <div>
+        <h3>Activity log</h3>
+        <p class="muted">Showing {{ activities.length }} of {{ totalElements }} activities.</p>
+      </div>
+    </div>
 
     <div class="empty-state" *ngIf="!activities.length && !loading">
-      <p class="muted">No activity yet</p>
+      <p class="muted">No activity found for this card yet.</p>
+    </div>
+
+    <div class="loading-state" *ngIf="loading">
+      <p class="muted">Loading activity...</p>
     </div>
 
     <div class="activity-table-wrap" *ngIf="activities.length">
-      <table class="table activity-table">
+      <table class="activity-table">
         <thead>
           <tr>
-            <th>Activity ID</th>
-            <th>Actor ID</th>
-            <th>Activity Type</th>
+            <th>Type</th>
             <th>Details</th>
-            <th>Created At</th>
+            <th>Actor</th>
+            <th>Time</th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let item of activities">
-            <td>{{ item.activityId }}</td>
-            <td>{{ item.actorId }}</td>
+          <tr *ngFor="let a of activities">
             <td>
-              <span class="activity-type">{{ formatActivityType(item.activityType) }}</span>
+              <span class="activity-type">{{ formatActivityType(a.activityType) }}</span>
             </td>
-            <td class="activity-details">{{ item.details }}</td>
-            <td>{{ formatDate(item.createdAt) }}</td>
+            <td class="activity-details">{{ a.details }}</td>
+            <td>{{ a.actorId }}</td>
+            <td>{{ a.createdAt | date:'short' }}</td>
           </tr>
         </tbody>
       </table>
     </div>
-  </aside>
-</div>
+
+    <div class="pagination" *ngIf="totalPages > 0">
+      <button class="button secondary" type="button" (click)="prevPage()" [disabled]="page === 0">
+        Previous
+      </button>
+
+      <span>Page {{ page + 1 }} of {{ totalPages }}</span>
+
+      <button class="button secondary" type="button" (click)="nextPage()" [disabled]="page + 1 >= totalPages">
+        Next
+      </button>
+    </div>
+  </section>
+</section>

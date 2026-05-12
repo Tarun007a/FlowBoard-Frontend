@@ -104,3 +104,9 @@
     grid-template-columns: 1fr;
   }
 }
+/* ── Mobile Responsive Improvements ── */
+@media (max-width: 480px) {
+  .subscription-card {
+    padding: 16px;
+  }
+}

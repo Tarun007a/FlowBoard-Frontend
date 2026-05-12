@@ -121,3 +121,9 @@
     flex-direction: column;
   }
 }
+/* ── Mobile Responsive Improvements ── */
+@media (max-width: 768px) {
+  .plans-grid {
+    grid-template-columns: 1fr;
+  }
+}

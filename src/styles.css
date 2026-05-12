@@ -370,3 +370,46 @@ a {
 .loading-spinner{width:28px;height:28px;border-radius:999px;border:3px solid #bfd9f4;border-top-color:#3b82f6;animation:spin 850ms linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 @media(max-width:980px){.analytics-section-head,.filter-head,.card-result{display:grid}.analytics-hero{display:grid}.hero-stat-cluster,.analytics-two-col,.count-grid{grid-template-columns:1fr;min-width:0}.member-hero .hero-stat-cluster{margin-left:0}}
+
+/* ════════════════════════════════════════
+   Global Mobile Responsive Improvements
+   ════════════════════════════════════════ */
+
+/* Smooth scrolling & tap highlight */
+html {
+  -webkit-tap-highlight-color: transparent;
+  scroll-behavior: smooth;
+}
+
+/* Prevent horizontal overflow on small screens */
+body {
+  overflow-x: hidden;
+}
+
+/* Improve touch targets */
+@media (max-width: 768px) {
+  button,
+  a,
+  [role="button"] {
+    min-height: 36px;
+  }
+
+  input,
+  select,
+  textarea {
+    font-size: 16px; /* Prevents iOS zoom on focus */
+  }
+}
+
+/* Section cards full-width on mobile */
+@media (max-width: 480px) {
+  .section-card {
+    border-radius: 12px;
+    padding: 14px;
+  }
+
+  .card,
+  .panel {
+    border-radius: 12px;
+  }
+}

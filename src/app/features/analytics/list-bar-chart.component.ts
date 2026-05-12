@@ -13,22 +13,8 @@ export interface ListBarChartItem {
   selector: 'app-list-bar-chart',
   standalone: true,
   imports: [CommonModule],
-  template: `
-    <div class="bar-chart-shell">
-      <canvas #canvas aria-label="Cards per list" role="img"></canvas>
-    </div>
-  `,
-  styles: [`
-    .bar-chart-shell {
-      width: 100%;
-      height: 220px;
-    }
-
-    canvas {
-      width: 100%;
-      height: 100%;
-    }
-  `]
+  templateUrl: './list-bar-chart.component.html',
+  styleUrl: './list-bar-chart.component.css'
 })
 export class ListBarChartComponent implements AfterViewInit, OnChanges, OnDestroy {
   @Input() items: ListBarChartItem[] = [];

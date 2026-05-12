@@ -2,10 +2,18 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { catchError, forkJoin, of } from 'rxjs';
+import { UserDto } from '../../core/models/auth.models';
 import { BoardDto, WorkspaceAnalyticsResponseDto, WorkspaceMemberDto } from '../../core/models/analytics.models';
 import { AnalyticsService } from '../../core/services/analytics.service';
+import { UserService } from '../../core/services/user.service';
 import { ListBarChartComponent, ListBarChartItem } from './list-bar-chart.component';
 import { StatusDoughnutComponent } from './status-doughnut.component';
+
+type WorkspaceMemberView = WorkspaceMemberDto & {
+  name: string | null;
+  email: string | null;
+  profilePicture: string | null;
+};
 
 @Component({
   selector: 'app-workspace-analytics',
@@ -18,9 +26,10 @@ export class WorkspaceAnalyticsComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly analyticsService = inject(AnalyticsService);
+  private readonly userService = inject(UserService);
 
   data: WorkspaceAnalyticsResponseDto | null = null;
-  members: WorkspaceMemberDto[] = [];
+  members: WorkspaceMemberView[] = [];
   boards: BoardDto[] = [];
   loading = false;
   workspaceId = 0;
@@ -65,9 +74,8 @@ export class WorkspaceAnalyticsComponent implements OnInit {
         next: ({ workspace, members, boards }) => {
           console.log('Response:', workspace);
           this.data = workspace;
-          this.members = members ?? [];
           this.boards = boards ?? [];
-          this.loading = false;
+          this.resolveMemberDetails(members ?? []);
         },
         error: (err) => {
           console.error(err);
@@ -97,5 +105,33 @@ export class WorkspaceAnalyticsComponent implements OnInit {
 
   trackByBoardId(_: number, board: BoardDto): number {
     return board.boardId;
+  }
+
+  private resolveMemberDetails(members: WorkspaceMemberDto[]): void {
+    const uniqueIds = Array.from(new Set(members.map((member) => member.userId)));
+    if (!uniqueIds.length) {
+      this.members = [];
+      this.loading = false;
+      return;
+    }
+
+    this.userService.getBulk(uniqueIds).pipe(
+      catchError((err) => {
+        console.error(err);
+        return of([] as UserDto[]);
+      })
+    ).subscribe((users) => {
+      const userMap = new Map<number, UserDto>(users.map((user) => [user.userId, user]));
+      this.members = members.map((member) => {
+        const user = userMap.get(member.userId);
+        return {
+          ...member,
+          name: user?.fullName ?? null,
+          email: user?.email ?? null,
+          profilePicture: user?.avatarUrl ?? null
+        };
+      });
+      this.loading = false;
+    });
   }
 }

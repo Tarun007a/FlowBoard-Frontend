@@ -37,7 +37,7 @@
     <select [(ngModel)]="filter.assigneeId" (change)="fetchCards()" aria-label="Assignee filter">
       <option value="">Any User</option>
       <option *ngFor="let m of members; trackBy: trackByMemberId" [value]="m.userId">
-        User {{ m.userId }}
+        {{ m.name || m.email || m.userId }}
       </option>
     </select>
   </div>
@@ -46,18 +46,25 @@
   <div class="state-box error" *ngIf="error">{{ error }}</div>
 
   <div class="cards-row" *ngIf="cards.length; else cardsState">
-    <article class="task-card" *ngFor="let c of cards; trackBy: trackByCardId" (click)="openCard(c)">
-      <div class="title">{{ c.title }}</div>
-
-      <div class="meta">
-        <span class="status" [ngClass]="statusClass(c.status)">{{ c.status }}</span>
-        <span class="priority">{{ c.priority || 'No priority' }}</span>
+    <div class="smart-card" *ngFor="let c of cards; trackBy: trackByCardId" (click)="openCard(c)">
+      <div class="smart-card-header">
+        <h3>{{ c.title }}</h3>
+        <span class="priority-badge">{{ c.priority || 'No priority' }}</span>
       </div>
 
-      <div class="due">
-        {{ c.dueDate ? (c.dueDate | date: 'mediumDate') : 'No due date' }}
+      <p class="smart-card-desc">
+        {{ c.description || 'No description provided' }}
+      </p>
+
+      <div class="smart-card-meta">
+        <span class="status-chip" [ngClass]="statusClass(c.status)">
+          {{ c.status || 'Not set' }}
+        </span>
+        <span class="date-chip">
+          {{ c.dueDate ? (c.dueDate | date:'MMM d, y') : 'No due date' }}
+        </span>
       </div>
-    </article>
+    </div>
   </div>
 
   <ng-template #cardsState>
@@ -68,16 +75,89 @@
   </ng-template>
 
   <aside class="side-panel" *ngIf="selectedCard">
-    <button type="button" class="close-btn" (click)="selectedCard = null" aria-label="Close card details">X</button>
+    <div class="detail-panel-wrapper">
+      <div class="card-panel">
+        <div class="panel-header">
+        <div>
+          <h2>{{ selectedCard.title }}</h2>
+          <p>{{ selectedCard.description || 'No description provided.' }}</p>
+        </div>
+        <button type="button" class="close-btn" (click)="selectedCard = null" aria-label="Close card details">
+          ✕
+        </button>
+      </div>
 
-    <h3>{{ selectedCard.title }}</h3>
-    <p>{{ selectedCard.description || 'No description provided.' }}</p>
+        <div class="status-row">
+          <span class="chip status">
+            {{ selectedCard.status || 'Not set' }}
+          </span>
+          <span class="chip priority">
+            {{ selectedCard.priority || 'Not set' }}
+          </span>
+        </div>
 
-    <div class="detail-list">
-      <div>Status: {{ selectedCard.status }}</div>
-      <div>Priority: {{ selectedCard.priority || 'None' }}</div>
-      <div>Due: {{ selectedCard.dueDate ? (selectedCard.dueDate | date: 'mediumDate') : 'No due date' }}</div>
-      <div>Assignee: {{ selectedCard.assigneeId || 'Unassigned' }}</div>
+        <div class="detail-grid">
+          <div class="detail-box">
+            <span class="label">Board</span>
+            <span class="value">{{ selectedCard.boardId }}</span>
+          </div>
+
+          <div class="detail-box">
+            <span class="label">List</span>
+            <span class="value">{{ selectedCard.listId }}</span>
+          </div>
+
+          <div class="detail-box">
+            <span class="label">Position</span>
+            <span class="value">{{ selectedCard.position }}</span>
+          </div>
+
+          <div class="detail-box">
+            <span class="label">Assignee</span>
+            <span class="value">{{ assigneeLabel(selectedCard) }}</span>
+          </div>
+
+          <div class="detail-box">
+            <span class="label">Created By</span>
+            <span class="value">{{ createdByLabel(selectedCard) }}</span>
+          </div>
+
+          <div class="detail-box">
+            <span class="label">Archived</span>
+            <span class="value">{{ selectedCard.isArchived ? 'Yes' : 'No' }}</span>
+          </div>
+        </div>
+
+        <div class="dates-section">
+          <div class="date-item">
+            <span>Due Date</span>
+            <strong>
+              {{ selectedCard.dueDate ? (selectedCard.dueDate | date: 'mediumDate') : 'Not set' }}
+            </strong>
+          </div>
+
+          <div class="date-item">
+            <span>Start Date</span>
+            <strong>
+              {{ selectedCard.startDate ? (selectedCard.startDate | date: 'mediumDate') : 'Not set' }}
+            </strong>
+          </div>
+
+          <div class="date-item">
+            <span>Created</span>
+            <strong>
+              {{ selectedCard.createdAt ? (selectedCard.createdAt | date:'short') : 'Not set' }}
+            </strong>
+          </div>
+
+          <div class="date-item">
+            <span>Updated</span>
+            <strong>
+              {{ selectedCard.updatedAt ? (selectedCard.updatedAt | date:'short') : 'Not set' }}
+            </strong>
+          </div>
+        </div>
+      </div>
     </div>
   </aside>
 </div>

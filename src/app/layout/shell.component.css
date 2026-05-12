@@ -278,3 +278,60 @@
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
 }
+
+/* ── Mobile Responsive Improvements ── */
+@media (max-width: 768px) {
+  .top-nav-inner {
+    min-height: 56px;
+    padding: 0.6rem 0.9rem;
+    flex-wrap: nowrap;
+  }
+
+  .top-links {
+    display: none;
+  }
+
+  .brand-name {
+    font-size: 1rem;
+  }
+
+  .top-actions {
+    gap: 0.4rem;
+  }
+
+  .profile-chip {
+    max-width: 140px;
+    padding: 0.2rem 0.45rem 0.2rem 0.22rem;
+  }
+
+  .profile-email {
+    display: none;
+  }
+
+  .notification-panel {
+    right: -8px;
+    width: min(320px, calc(100vw - 16px));
+  }
+
+  .page-frame {
+    width: calc(100% - 16px);
+    padding: 12px 0 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .brand-mark {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+  }
+
+  .icon-button {
+    width: 36px;
+    height: 36px;
+  }
+
+  .notification-panel {
+    width: calc(100vw - 16px);
+  }
+}

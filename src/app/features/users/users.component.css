@@ -15,3 +15,14 @@
         padding: 14px;
         white-space: pre-wrap;
       }
+
+/* ── Mobile Responsive Improvements ── */
+@media (max-width: 768px) {
+  .users-table-wrap {
+    overflow-x: auto;
+  }
+
+  .users-table {
+    min-width: 580px;
+  }
+}

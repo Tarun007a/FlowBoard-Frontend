@@ -1,0 +1,9 @@
+<div class="chart-shell" [class.compact-chart]="compact">
+  <canvas #canvas aria-label="Card status distribution" role="img"></canvas>
+</div>
+<div class="chart-legend" *ngIf="showLegend">
+  <span *ngFor="let item of slices" class="legend-item">
+    <i [style.background]="item.color"></i>
+    {{ item.label }} <strong>{{ item.value }}</strong>
+  </span>
+</div>

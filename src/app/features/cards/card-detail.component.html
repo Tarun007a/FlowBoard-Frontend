@@ -8,11 +8,12 @@
       <div>
         <div class="badge">Card Detail</div>
         <h2>{{ card.title }}</h2>
+        <button class="activity-btn" type="button" (click)="openActivity()">
+          <span aria-hidden="true">&#128203;</span>
+          <span>Activity</span>
+        </button>
       </div>
       <div class="actions">
-        <button class="icon-button" type="button" title="View Activity" aria-label="View Activity" (click)="openActivity()">
-          <span class="clock-icon" aria-hidden="true"></span>
-        </button>
         <button class="button secondary" type="button" (click)="requestEdit.emit(card)">Edit</button>
         <button class="button danger detail-delete" type="button" (click)="deleteCard()">Delete</button>
         <button class="button secondary" type="button" (click)="close()">Close</button>
@@ -130,11 +131,5 @@
         </article>
       </div>
     </section>
-
-    <app-card-activity
-      *ngIf="showActivity"
-      [cardId]="card.cardId"
-      (closed)="closeActivity()"
-    ></app-card-activity>
   </aside>
 </div>

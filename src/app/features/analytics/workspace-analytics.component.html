@@ -70,7 +70,8 @@
 
     <div class="scroll-row" *ngIf="members.length; else noMembers">
       <article class="member-card" *ngFor="let member of members; trackBy: trackByMemberId" (click)="openMember(member)">
-        <div>User {{ member.userId }}</div>
+        <div>{{ member.name || 'Member name unavailable' }}</div>
+        <small>{{ member.email || 'Email unavailable' }}</small>
         <small>Joined {{ member.joinedAt | date: 'mediumDate' }}</small>
       </article>
     </div>

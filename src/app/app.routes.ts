@@ -9,6 +9,7 @@ import { AuthVerifyComponent } from './features/auth/auth-verify.component';
 import { OAuthSuccessComponent } from './features/auth/oauth-success.component';
 import { WorkspacesComponent } from './features/workspaces/workspaces.component';
 import { CardsComponent } from './features/cards/cards.component';
+import { CardActivityComponent } from './features/cards/card-activity.component';
 import { WorkspaceDetailComponent } from './features/workspace-detail/workspace-detail.component';
 import { NotificationsComponent } from './features/notifications/notifications.component';
 import { ProfileComponent } from './features/profile/profile.component';
@@ -76,6 +77,7 @@ export const routes: Routes = [
 			{ path: 'workspace/:id', component: WorkspaceDetailComponent },
 			{ path: 'workspace/:id/boards', component: WorkspaceDetailComponent },
 			{ path: 'board/:id', component: CardsComponent },
+			{ path: 'card/:cardId/activity', component: CardActivityComponent },
 			{ path: 'notifications', component: NotificationsComponent },
 			{ path: '', pathMatch: 'full', redirectTo: 'workspaces' }
 		]

@@ -331,3 +331,45 @@
   .member-row { grid-template-columns: 1fr; justify-items: start; }
   .members-drawer { width: 100%; border-radius: 0; }
 }
+
+/* ── Mobile Responsive Improvements ── */
+@media (max-width: 768px) {
+  .workspace-banner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .banner-actions {
+    justify-content: flex-start;
+  }
+
+  .member-row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .board-grid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .workspace-banner,
+  .workspace-header {
+    padding: 12px;
+  }
+
+  .board-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .members-drawer {
+    width: 100% !important;
+    border-radius: 0 !important;
+  }
+
+  .section-card {
+    padding: 12px;
+  }
+}

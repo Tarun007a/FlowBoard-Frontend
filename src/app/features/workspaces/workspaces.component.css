@@ -255,3 +255,42 @@
   .workspace-hero { flex-direction: column; align-items: stretch; }
   .workspace-layout { grid-template-columns: 1fr; }
 }
+
+/* ── Mobile Responsive Improvements ── */
+@media (max-width: 768px) {
+  .page-container {
+    padding: 12px 14px;
+  }
+
+  .workspace-hero {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .workspace-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+
+  .modal-card {
+    padding: 0.85rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-container {
+    padding: 10px 10px;
+  }
+
+  .workspace-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .workspace-card {
+    min-height: 120px;
+    max-height: none;
+  }
+
+  .modal-card {
+    width: 100%;
+  }
+}

@@ -3,8 +3,15 @@ import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { catchError, forkJoin, of } from 'rxjs';
+import { UserDto } from '../../core/models/auth.models';
 import { BoardDto, CardDto, WorkspaceMemberDto } from '../../core/models/analytics.models';
 import { AnalyticsService } from '../../core/services/analytics.service';
+import { UserService } from '../../core/services/user.service';
+
+type WorkspaceMemberView = WorkspaceMemberDto & {
+  name: string | null;
+  email: string | null;
+};
 
 type SmartFilterState = {
   status: '' | 'TO_DO' | 'IN_PROGRESS' | 'IN_REVIEW' | 'DONE';
@@ -24,8 +31,9 @@ export class SmartFilterComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly analyticsService = inject(AnalyticsService);
+  private readonly userService = inject(UserService);
 
-  members: WorkspaceMemberDto[] = [];
+  members: WorkspaceMemberView[] = [];
   boards: BoardDto[] = [];
   cards: CardDto[] = [];
   selectedCard: CardDto | null = null;
@@ -33,6 +41,7 @@ export class SmartFilterComponent implements OnInit {
   cardsLoading = false;
   error = '';
   workspaceId = 0;
+  private readonly userDirectory: Record<number, UserDto> = {};
   filter: SmartFilterState = {
     status: '',
     due: '',
@@ -75,6 +84,7 @@ export class SmartFilterComponent implements OnInit {
     this.analyticsService.getCards(params).subscribe({
       next: (res) => {
         this.cards = res ?? [];
+        this.resolveUserDirectory(this.collectCardUserIds(this.cards));
         this.cardsLoading = false;
       },
       error: (err) => {
@@ -88,6 +98,18 @@ export class SmartFilterComponent implements OnInit {
 
   openCard(card: CardDto): void {
     this.selectedCard = card;
+  }
+
+  assigneeLabel(card: CardDto): string {
+    if (card.assigneeId === null) {
+      return 'Not assigned';
+    }
+
+    return this.userDirectory[card.assigneeId]?.fullName || String(card.assigneeId);
+  }
+
+  createdByLabel(card: CardDto): string {
+    return this.userDirectory[card.createdById]?.fullName || String(card.createdById);
   }
 
   statusClass(status: string): string {
@@ -114,9 +136,8 @@ export class SmartFilterComponent implements OnInit {
       boards: this.analyticsService.getWorkspaceBoards(this.workspaceId).pipe(catchError(() => of([] as BoardDto[])))
     }).subscribe({
       next: ({ members, boards }) => {
-        this.members = members ?? [];
+        this.resolveMemberDetails(members ?? []);
         this.boards = boards ?? [];
-        this.loading = false;
       },
       error: (err) => {
         console.error(err);
@@ -125,5 +146,67 @@ export class SmartFilterComponent implements OnInit {
         this.loading = false;
       }
     });
+  }
+
+  private resolveMemberDetails(members: WorkspaceMemberDto[]): void {
+    const uniqueIds = Array.from(new Set(members.map((member) => member.userId)));
+    if (!uniqueIds.length) {
+      this.members = [];
+      this.loading = false;
+      return;
+    }
+
+    this.userService.getBulk(uniqueIds).pipe(
+      catchError((err) => {
+        console.error(err);
+        return of([] as UserDto[]);
+      })
+    ).subscribe((users) => {
+      this.storeUsers(users);
+      const userMap = new Map<number, UserDto>(users.map((user) => [user.userId, user]));
+      this.members = members.map((member) => {
+        const user = userMap.get(member.userId);
+        return {
+          ...member,
+          name: user?.fullName ?? null,
+          email: user?.email ?? null
+        };
+      });
+      this.loading = false;
+    });
+  }
+
+  private resolveUserDirectory(userIds: number[]): void {
+    const missingIds = userIds.filter((userId) => !this.userDirectory[userId]);
+    if (!missingIds.length) {
+      return;
+    }
+
+    this.userService.getBulk(missingIds).pipe(
+      catchError((err) => {
+        console.error(err);
+        return of([] as UserDto[]);
+      })
+    ).subscribe((users) => {
+      this.storeUsers(users);
+    });
+  }
+
+  private storeUsers(users: UserDto[]): void {
+    for (const user of users) {
+      this.userDirectory[user.userId] = user;
+    }
+  }
+
+  private collectCardUserIds(cards: CardDto[]): number[] {
+    return Array.from(new Set(
+      cards.flatMap((card) => {
+        const ids = [card.createdById];
+        if (card.assigneeId !== null) {
+          ids.push(card.assigneeId);
+        }
+        return ids;
+      })
+    ));
   }
 }

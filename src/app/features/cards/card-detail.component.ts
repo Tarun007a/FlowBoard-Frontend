@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Router } from '@angular/router';
 import { AttachmentResponse, CommentResponse } from '../../core/models/comment.models';
 import { AuthSession, UserDto } from '../../core/models/auth.models';
 import { CardResponse } from '../../core/models/card.models';
@@ -8,12 +9,11 @@ import { AttachmentService } from '../../core/services/attachment.service';
 import { CommentService } from '../../core/services/comment.service';
 import { UserService } from '../../core/services/user.service';
 import { isAdminRole } from '../../core/utils/admin.utils';
-import { CardActivityComponent } from './card-activity.component';
 
 @Component({
   selector: 'app-card-detail',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, CardActivityComponent],
+  imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './card-detail.component.html',
   styleUrl: './card-detail.component.css'
 })
@@ -22,6 +22,7 @@ export class CardDetailComponent implements OnChanges {
   private readonly commentService = inject(CommentService);
   private readonly userService = inject(UserService);
   private readonly fb = inject(FormBuilder);
+  private readonly router = inject(Router);
 
   // Inputs: data passed in from the parent component (cards.component)
   @Input({ required: true }) card!: CardResponse;
@@ -40,7 +41,6 @@ export class CardDetailComponent implements OnChanges {
   loadingComments = false;
   uploadingAttachment = false;
   postingComment = false;
-  showActivity = false;
   authorMap: Record<number, UserDto> = {};  // key: userId → user profile (for comment author names)
 
   editingCommentId: number | null = null;
@@ -56,7 +56,6 @@ export class CardDetailComponent implements OnChanges {
       this.selectedFile = null;
       this.commentForm.reset({ content: '' });
       this.cancelEditComment();
-      this.closeActivity();
       this.loadAttachments();
       this.loadComments();
     }
@@ -65,11 +64,12 @@ export class CardDetailComponent implements OnChanges {
   close(): void { this.closed.emit(); }
 
   openActivity(): void {
-    this.showActivity = true;
-  }
-
-  closeActivity(): void {
-    this.showActivity = false;
+    void this.router.navigate(['/card', this.card.cardId, 'activity'], {
+      state: {
+        card: this.card,
+        assigneeName: this.assigneeName
+      }
+    });
   }
 
   deleteCard(): void {

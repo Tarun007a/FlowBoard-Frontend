@@ -148,11 +148,11 @@ export class CardService {
     );
   }
 
-  getCardActivities(cardId: number, page = 0, size = 10, sortBy = 'createdAt', direction = 'DESC') {
+  getCardActivities(cardId: number, page = 0, size = 10, sortBy = 'createdAt', direction = 'desc') {
     return this.api.get<ApiPage<CardActivityResponse>>(`/api/v1/cards/card/${cardId}`, { page, size, sortBy, direction });
   }
 
-  getActivities(cardId: number, page = 0, size = 10, sortBy = 'createdAt', direction = 'DESC') {
+  getActivities(cardId: number, page = 0, size = 10, sortBy = 'createdAt', direction = 'desc') {
     return this.getCardActivities(cardId, page, size, sortBy, direction);
   }
 }

@@ -15,66 +15,8 @@ interface StatusSlice {
   selector: 'app-status-doughnut',
   standalone: true,
   imports: [CommonModule],
-  template: `
-    <div class="chart-shell" [class.compact-chart]="compact">
-      <canvas #canvas aria-label="Card status distribution" role="img"></canvas>
-    </div>
-    <div class="chart-legend" *ngIf="showLegend">
-      <span *ngFor="let item of slices" class="legend-item">
-        <i [style.background]="item.color"></i>
-        {{ item.label }} <strong>{{ item.value }}</strong>
-      </span>
-    </div>
-  `,
-  styles: [`
-    .chart-shell {
-      width: 100%;
-      height: 190px;
-      display: grid;
-      place-items: center;
-    }
-
-    canvas {
-      max-width: 190px;
-      max-height: 190px;
-    }
-
-    .compact-chart {
-      height: 168px;
-    }
-
-    .compact-chart canvas {
-      max-width: 168px;
-      max-height: 168px;
-    }
-
-    .chart-legend {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 0.45rem 0.65rem;
-      font-size: 0.78rem;
-      color: #536579;
-    }
-
-    .legend-item {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.36rem;
-      min-width: 0;
-      white-space: nowrap;
-    }
-
-    .legend-item i {
-      width: 0.62rem;
-      height: 0.62rem;
-      border-radius: 999px;
-      flex: 0 0 auto;
-    }
-
-    .legend-item strong {
-      color: #1f2f43;
-    }
-  `]
+  templateUrl: './status-doughnut.component.html',
+  styleUrl: './status-doughnut.component.css'
 })
 export class StatusDoughnutComponent implements AfterViewInit, OnChanges, OnDestroy {
   @Input({ required: true }) summary!: CardStatusSummaryDto | null;
