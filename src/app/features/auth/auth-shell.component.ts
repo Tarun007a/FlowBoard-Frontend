@@ -20,7 +20,7 @@ type AuthTab = 'login' | 'signup';
 })
 export class AuthShellComponent implements OnInit {
   // URL for Google OAuth login
-  private readonly googleOAuthUrl = 'http://localhost:8080/oauth2/authorization/google';
+  private readonly googleOAuthUrl = 'http://flow-board.duckdns.org:8080/oauth2/authorization/google';
 
   // Injected services (Angular's modern way to get services without a constructor)
   private readonly fb = inject(FormBuilder);

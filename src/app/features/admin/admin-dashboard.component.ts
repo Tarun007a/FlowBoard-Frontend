@@ -53,15 +53,15 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   statusLabel(user: UserDto): 'Enabled' | 'Disabled' {
-    return user.isActive ? 'Enabled' : 'Disabled';
+    return user.active ? 'Enabled' : 'Disabled';
   }
 
   isDisabled(user: UserDto): boolean {
-    return !user.isActive;
+    return !user.active;
   }
 
   toggleStatus(user: UserDto): void {
-    const currentlyEnabled = user.isActive;
+    const currentlyEnabled = user.active;
     const request$ = currentlyEnabled
       ? this.adminService.disableUser(user.userId)
       : this.adminService.enableUser(user.userId);
@@ -186,9 +186,9 @@ export class AdminDashboardComponent implements OnInit {
       });
   }
 
-  private updateUserStatus(userId: number, isActive: boolean): void {
+  private updateUserStatus(userId: number, active: boolean): void {
     const update = (item: UserDto): UserDto =>
-      item.userId === userId ? { ...item, isActive } : item;
+      item.userId === userId ? { ...item, active } : item;
 
     this.users = this.users.map(update);
     this.allUsers = this.allUsers.map(update);

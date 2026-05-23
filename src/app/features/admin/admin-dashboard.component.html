@@ -9,12 +9,8 @@
 
   <section class="panel admin-content stack">
     <form class="admin-search" [formGroup]="searchForm" (ngSubmit)="onSearchSubmit()">
-      <input
-        type="text"
-        formControlName="query"
-        placeholder="Search by username or email"
-        aria-label="Search by username or email"
-      />
+      <input type="text" formControlName="query" placeholder="Search by username or email"
+        aria-label="Search by username or email" />
       <button class="button accent" type="submit" [disabled]="loading">Search</button>
     </form>
 
@@ -42,19 +38,14 @@
                 {{ statusLabel(user) }}
               </span>
             </td>
+            <button class="button secondary" type="button" (click)="toggleStatus(user)"
+              [disabled]="actionLoadingUserId === user.userId">
+              {{ isDisabled(user) ? 'Enable' : 'Disable' }}
+              </button>
+
             <td>
               <div class="actions">
-                <button
-                  class="button secondary"
-                  type="button"
-                  (click)="toggleStatus(user)"
-                  [disabled]="actionLoadingUserId === user.userId">
-                  {{ isDisabled(user) ? 'Enable' : 'Disable' }}
-                </button>
-                <button
-                  class="button danger"
-                  type="button"
-                  (click)="deleteUser(user)"
+                <button class="button danger" type="button" (click)="deleteUser(user)"
                   [disabled]="actionLoadingUserId === user.userId">
                   Delete
                 </button>

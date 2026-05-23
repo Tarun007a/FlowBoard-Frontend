@@ -14,7 +14,7 @@ export const appConfig: ApplicationConfig = {
     provideHttpClient(withInterceptors([authInterceptor])),
     {
       provide: API_BASE_URL,
-      useValue: 'http://52.64.100.53:8080'
+      useValue: 'http://flow-board.duckdns.org:8080'
     }
   ]
 };
